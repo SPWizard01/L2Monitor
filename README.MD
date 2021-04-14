@@ -1,0 +1,3 @@
+Just messing around with packets of a game called Lineage2.
+
+The Game Server part works partially, i.e. Last packet to be decrypted (not fully) is charinfo...

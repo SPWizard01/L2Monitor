@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30523.141
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "L2Monitor", "L2Monitor\L2Monitor.csproj", "{14650EE6-3C80-4BDA-A5CC-EFFA95C95E78}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PacketDotNetConnections", "PacketDotNet.Connections\PacketDotNetConnections.csproj", "{CE021540-F7D6-42BD-98E3-46AB27D23915}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F9D84949-16D3-4A65-B2AF-2902D033646D}"
+	ProjectSection(SolutionItems) = preProject
+		README.MD = README.MD
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{14650EE6-3C80-4BDA-A5CC-EFFA95C95E78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14650EE6-3C80-4BDA-A5CC-EFFA95C95E78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14650EE6-3C80-4BDA-A5CC-EFFA95C95E78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14650EE6-3C80-4BDA-A5CC-EFFA95C95E78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE021540-F7D6-42BD-98E3-46AB27D23915}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE021540-F7D6-42BD-98E3-46AB27D23915}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE021540-F7D6-42BD-98E3-46AB27D23915}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE021540-F7D6-42BD-98E3-46AB27D23915}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {744141B3-0550-4A48-B797-6A13023B6E1A}
+	EndGlobalSection
+EndGlobal

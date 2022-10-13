@@ -1,5 +1,6 @@
 ﻿using L2Monitor.Common.Packets;
 using L2Monitor.Game.Models;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,9 +22,6 @@ namespace L2Monitor.Game.Packets.Incomming
         public int CastleId { get; }
         public CastleState CastleState { get; private set; }
 
-        public override void Parse()
-        {
-            throw new NotImplementedException();
-        }
+
     }
 }

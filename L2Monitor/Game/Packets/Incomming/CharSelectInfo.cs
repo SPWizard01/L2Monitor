@@ -1,5 +1,6 @@
 ﻿using L2Monitor.Common.Packets;
 using L2Monitor.Game.Models;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -47,9 +48,6 @@ namespace L2Monitor.Game.Packets.Incomming
             var a = 1;
         }
 
-        public override void Parse()
-        {
-            throw new NotImplementedException();
-        }
+
     }
 }

@@ -2,29 +2,35 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using Serilog;
 
 namespace L2Monitor.Common.Packets
 {
     public abstract class BasePacket : IBasePacket
     {
         private readonly MemoryStream _decryptedStream;
+        internal readonly ILogger baseLogger;
         public ushort PacketSize { get; set; }
         public OpCode OpCode { get; set; }
         public BasePacket(MemoryStream memStream)
         {
             _decryptedStream = memStream;
+            baseLogger = Log.ForContext(GetType());
             PacketSize = readUInt16();
             var byteOpCode = readByte();
             short shortOpCode = 0;
 
-            if(byteOpCode == 0xFE)
+            if (byteOpCode == 0xFE)
             {
                 //this is extended packet
                 shortOpCode = readInt16();
             }
             OpCode = new OpCode(byteOpCode, shortOpCode);
         }
-
+        internal void LogNewDataWarning(string dataName, object data)
+        {
+            baseLogger.Warning("NEW DATA INSIDE PACKET {packetname}: {data}", dataName, data);
+        }
         public bool HasRemainingData()
         {
             return _decryptedStream.Position != _decryptedStream.Length;
@@ -42,6 +48,11 @@ namespace L2Monitor.Common.Packets
             return result;
         }
 
+        public ushort readByteAsShort()
+        {
+            return Convert.ToUInt16(readBytes(1)[0]);
+        }
+
         public bool readBool()
         {
             var result = BitConverter.ToBoolean(readBytes(1), 0);
@@ -51,6 +62,12 @@ namespace L2Monitor.Common.Packets
         public int readInt()
         {
             var result = BitConverter.ToInt32(readBytes(4), 0);
+            return result;
+        }
+
+        public uint readUInt()
+        {
+            var result = BitConverter.ToUInt32(readBytes(4), 0);
             return result;
         }
 
@@ -111,13 +128,23 @@ namespace L2Monitor.Common.Packets
             var outData = new byte[length];
             if (!_decryptedStream.CanRead || _decryptedStream.Position == _decryptedStream.Length)
             {
-                
+                baseLogger.Error("Attempting to read {readcount} bytes outside bounds. Current stream position {position}; length {length}", length, _decryptedStream.Position, _decryptedStream.Length);
+                baseLogger.Error("Full packet {packet}", BitConverter.ToString(_decryptedStream.ToArray()));
                 return outData;
             }
             _decryptedStream.Read(outData, 0, length);
             return outData;
         }
 
-        public abstract void Parse();
+        public void WarnOnRemainingData()
+        {
+            return;
+            if (HasRemainingData())
+            {
+                var data = GetRemainingData();
+                baseLogger.Warning($"This packet has remaining data: {BitConverter.ToString(data)}");
+            }
+        }
+
     }
 }

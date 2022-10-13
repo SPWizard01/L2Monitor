@@ -18,7 +18,9 @@ namespace L2Monitor.Game
     {
         private GameCrypt gameCrypt;
         public TcpConnection TcpConnection { get; set; }
-        private Serilog.ILogger Logger;
+        private ILogger Logger;
+        
+
         public GameClient(TcpConnection connection)
         {
             Logger = Log.ForContext<GameClient>();
@@ -43,10 +45,28 @@ namespace L2Monitor.Game
             var data = (byte[])tcpPacket.PayloadData.Clone();
             var direction = tcpPacket.SourcePort == Constants.GAME_PORT ? PacketDirection.ServerToClient : PacketDirection.ClientToServer;
 
+            if(gameCrypt == null && direction == PacketDirection.ClientToServer)
+            {
+                Logger.Information("Initial decrypt {data}", BitConverter.ToString(data));
+                var clt = ClientHandler.GetLoginClient();
+                clt.Crypt.Decrypt(data);
+                Logger.Information("Initial after decrypt {data}", BitConverter.ToString(data));
+            }
+
             if (gameCrypt != null)
             {
-                gameCrypt.Decrypt(data, direction);
+                Logger.Information("Before decrypt {data}", BitConverter.ToString(data));
+                gameCrypt.DecryptServerTest(data, direction);
+                Logger.Information("After decrypt {data}", BitConverter.ToString(data));
+
             }
+
+            var registeredSize = BitConverter.ToUInt16(data, 0);
+            if (registeredSize != data.Length)
+            {
+                //Logger.Error("Packet size mismatch, obfuscated packet?! Data length: {datasize}; Read length: {regsize}", data.Length, registeredSize);
+            }
+
 
             var parsedPacket = ParsePacket(data, direction);
             if (parsedPacket == null)
@@ -54,9 +74,11 @@ namespace L2Monitor.Game
                 return;
             }
 
-            if (parsedPacket.GetType() == typeof(KeyPacket))
+            if (parsedPacket.GetType() == typeof(CryptInit) && gameCrypt == null)
             {
-                gameCrypt = new GameCrypt(parsedPacket as KeyPacket);
+                var pck = parsedPacket as CryptInit;
+                gameCrypt = new GameCrypt(pck);
+                gameCrypt.SetKey(pck.EncryptionKey);
                 return;
             }
 

@@ -8,6 +8,5 @@ namespace L2Monitor.Common.Packets
     {
         ushort PacketSize { get; set; }
         OpCode OpCode { get; set; }
-        void Parse();
     }
 }

@@ -1,4 +1,5 @@
 ﻿using L2Monitor.Common.Packets;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,9 +22,6 @@ namespace L2Monitor.Game.Packets.Incomming
         public int ActionId { get; private set; }
         public int Unknown1 { get; private set; }
 
-        public override void Parse()
-        {
-            throw new NotImplementedException();
-        }
+
     }
 }

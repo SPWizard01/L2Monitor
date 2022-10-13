@@ -1,6 +1,9 @@
-﻿using L2Monitor.Common.Packets;
+﻿using L2Monitor.Common;
+using L2Monitor.Common.Packets;
 using L2Monitor.Game.Packets.Incomming;
 using L2Monitor.Util;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Parameters;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -9,7 +12,7 @@ using System.Text;
 
 namespace L2Monitor.Game
 {
-    public class GameCrypt
+    public class GameCrypt : L2Crypt
     {
 
         private readonly byte[] StaticPart = new byte[]
@@ -23,34 +26,72 @@ namespace L2Monitor.Game
             0x31,
             0x97
         };
-        ILogger Logger;
-        
+
         private byte[] serverToClientKey = new byte[16];
         private byte[] clientToServerKey = new byte[16];
-        public GameCrypt(KeyPacket packet)
+
+        private BlowfishEngine _crypt = new BlowfishEngine();
+        public GameCrypt(CryptInit packet)
         {
-            Logger = Log.ForContext<GameCrypt>();
             packet.EncryptionKey.CopyTo(serverToClientKey, 0);
             StaticPart.CopyTo(serverToClientKey, 8);
             packet.EncryptionKey.CopyTo(clientToServerKey, 0);
             StaticPart.CopyTo(clientToServerKey, 8);
         }
 
-        public void EncryptToClient(byte[] encryptedData)
+        public void SetKey(byte[] key)
         {
-            // server uses to encrypt:
-            //int tempValue = 0;
-            //while (buf.isReadable())
-            //{
-            //    final int thisByteInt = buf.readByte() & 0xFF;
-            //    var keyIndex = buf.readerIndex();
-            //    var keyAddress = (keyIndex - 1) & 15;
-            //    tempValue = thisByteInt ^ _outKey[keyAddress] ^ tempValue;
-            //    buf.setByte(buf.readerIndex() - 1, tempValue);
-            //}
+            var fullKey = new byte[16];
+            key.CopyTo(fullKey, 0);
+            StaticPart.CopyTo(fullKey, 8);
+            _crypt.Init(false, new KeyParameter(fullKey));
         }
 
-        public void Decrypt(byte[] encryptedData, PacketDirection direction)
+        //public void EncryptToClient(byte[] encryptedData)
+        //{
+        //    // server uses to encrypt:
+        //    //int tempValue = 0;
+        //    //while (buf.isReadable())
+        //    //{
+        //    //    final int thisByteInt = buf.readByte() & 0xFF;
+        //    //    var keyIndex = buf.readerIndex();
+        //    //    var keyAddress = (keyIndex - 1) & 15;
+        //    //    tempValue = thisByteInt ^ _outKey[keyAddress] ^ tempValue;
+        //    //    buf.setByte(buf.readerIndex() - 1, tempValue);
+        //    //}
+        //}
+
+        public void Decrypt(byte[] raw, int offset, int size)
+        {
+
+            if (!_isEnabled)
+                return;
+
+            uint temp = 0;
+            for (int i = 0; i < size - offset; i++)
+            {
+                uint temp2 = (uint)raw[offset + i] & 0xFF;
+                raw[offset + i] = (byte)(temp2 ^ _inKey[i & 15] ^ temp);
+                temp = temp2;
+            }
+
+            /*uint old = _inKey[8] & (uint)0xff;
+            old |= (uint)_inKey[9] << 8 & 0xff00;
+            old |= (uint)_inKey[10] << 0x10 & (uint)0xff0000;
+            old |= (uint)_inKey[11] << 0x18 & 0xff000000;*/
+
+            uint old = BitConverter.ToUInt32(_inKey, 8);
+            old += (uint)(size - offset); // FUCKING BUG!! min. 24h waste of time!!! =(
+
+            _inKey[8] = (byte)(old & 0xff);
+            _inKey[9] = (byte)(old >> 0x08 & 0xff);
+            _inKey[10] = (byte)(old >> 0x10 & 0xff);
+            _inKey[11] = (byte)(old >> 0x18 & 0xff);
+
+        }
+
+
+        public void DecryptServerTest(byte[] encryptedData, PacketDirection direction)
         {
             //header(payload size) is never encrypted
             var dataLen = encryptedData.Length - Constants.HEADER_SIZE;
@@ -60,7 +101,7 @@ namespace L2Monitor.Game
             var usedKey = direction == PacketDirection.ServerToClient ? serverToClientKey : clientToServerKey;
             var tempKey = 0;
 
-            for(var i = 0; i < _decryptedData.Length; i++)
+            for (var i = 0; i < _decryptedData.Length; i++)
             {
                 //from 1 byte to int representation
                 var thisByteInt = _decryptedData[i] & 0xFF;

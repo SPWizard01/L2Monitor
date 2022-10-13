@@ -19,8 +19,9 @@ namespace L2Monitor.Login
     {
 
         public TcpConnection TcpConnection { get; set; }
-        private LoginCrypt Crypt;
+        public LoginCrypt Crypt;
         private ILogger logger;
+        private bool inited = false;
 
         public LoginClient(TcpConnection connection)
         {
@@ -41,17 +42,13 @@ namespace L2Monitor.Login
         private void Connection_OnPacketReceived(SharpPcap.PosixTimeval timeval, TcpConnection connection, TcpFlow flow, TcpPacket tcp)
         {
             //incoming packets, first one is Init always
-            if (tcp.SourcePort == Constants.LOGIN_PORT && Crypt.IsInitial)
+            if (tcp.SourcePort == Constants.LOGIN_PORT && !inited)
             {
                 TryInit(tcp);
                 return;
             }
 
-            // only after inited we can parse
-            if (!Crypt.IsInitial)
-            {
-                ParsePacket(tcp);
-            }
+            ParsePacket(tcp);
 
         }
 
@@ -64,8 +61,10 @@ namespace L2Monitor.Login
             var direction = tcpPacket.SourcePort == Constants.LOGIN_PORT ? PacketDirection.ServerToClient : PacketDirection.ClientToServer;
             var data = (byte[])tcpPacket.PayloadData.Clone();
             var opcode = GetOpCodePacket(data, direction);
+            Crypt.Checksum(data);
+
             var instance = GetInstance(opcode, direction, data);
-       }
+        }
 
         public void TryInit(TcpPacket tcpPacket)
         {
@@ -79,18 +78,21 @@ namespace L2Monitor.Login
                 var direction = PacketDirection.ServerToClient;
                 var test = GetOpCodePacket(data, direction);
                 //not init packet.
-                if (!test.OpCode.Match(LoginOpCodes.Init))
+                if (!test.OpCode.Match(LoginOpCodes.Init) && !inited)
                 {
+                    logger.Warning("{direction} Unknown packet before init {data}", direction, BitConverter.ToString(data));
                     return;
                 }
 
                 //if it is init packet unxor it.
                 Crypt.DecXORPass(data);
+                //Crypt.javaDecXORPass(data);
 
                 var instance = GetInstance(test, direction, data) as Init;
                 if (instance != null)
                 {
                     Crypt.SetKey(instance.BlowFishKey);
+                    inited = true;
                 }
 
             }
@@ -103,10 +105,10 @@ namespace L2Monitor.Login
 
         private OpCodePacket GetOpCodePacket(byte[] data, PacketDirection direction)
         {
-            Crypt.Decrypt(data, Constants.HEADER_SIZE, data.Length - Constants.HEADER_SIZE);
+            Crypt.Decrypt(data);
 
             var test = new OpCodePacket(new MemoryStream(data));
-            if (test.OpCode.Id1 == 0 && !Crypt.IsInitial)
+            if (test.OpCode.Id1 == 0 && inited)
             {
                 logger.Error($"{direction}: Received Zero Length packet. Payload:{BitConverter.ToString(data)}");
             }

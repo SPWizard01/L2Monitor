@@ -1,8 +1,7 @@
 ﻿using L2Monitor.Common.Packets;
+using Serilog;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace L2Monitor.Game.Packets.Outgoing
 {
@@ -15,9 +14,6 @@ namespace L2Monitor.Game.Packets.Outgoing
             //The rest is unknown
         }
 
-        public override void Parse()
-        {
-            throw new NotImplementedException();
-        }
+
     }
 }

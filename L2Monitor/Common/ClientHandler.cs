@@ -14,6 +14,11 @@ namespace L2Monitor.Common
         private static List<LoginClient> loginClients = new List<LoginClient>();
         private static List<GameClient> gameClients = new List<GameClient>();
 
+        public static LoginClient GetLoginClient()
+        {
+            return loginClients.FirstOrDefault();
+        }
+
         public static void HandleLoginClient(TcpConnection connection)
         {
             if(loginClients.Any(c=>c.TcpConnection == connection))

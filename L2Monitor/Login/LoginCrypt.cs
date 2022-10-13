@@ -1,49 +1,41 @@
-﻿using Org.BouncyCastle.Crypto.Engines;
+﻿using L2Monitor.Common;
+using L2Monitor.Util;
+using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace L2Monitor.Login
 {
-    public class LoginCrypt
+    public class LoginCrypt : L2Crypt
     {
-        private static readonly byte[] STATIC_BLOWFISH_KEY = {
-             0x6b,
-             0x60,
-             0xcb,
-             0x5b,
-             0x82,
-             0xce,
-             0x90,
-             0xb1,
-             0xcc,
-             0x2b,
-             0x6c,
-             0x55,
-             0x6c,
-             0x6c,
-             0x6c,
-             0x6c
-        };
 
-        private BlowfishEngine STATIC_CRYPT = new BlowfishEngine();
         private BlowfishEngine _crypt = new BlowfishEngine();
-        private KeyParameter _decryptKey;
-        public bool IsInitial { get; private set; }
-        public LoginCrypt()
+        private bool _keySet = false;
+
+        public void SetKey(byte[] initPacketBlowfishKey)
         {
-            IsInitial = true;
-            KeyParameter staticKey = new KeyParameter(STATIC_BLOWFISH_KEY);
-            STATIC_CRYPT.Init(false, staticKey);
+            if (_keySet)
+            {
+                logger.Error("Encryption key is already set");
+                return;
+            }
+            if (initPacketBlowfishKey.Length != 16)
+            {
+                logger.Error("Blowfish key has to be 16 bytes long, got key {len} long.", initPacketBlowfishKey.Length);
+            }
+            _keySet = true;
+            _crypt.Init(false, new KeyParameter(initPacketBlowfishKey));
         }
 
-        public void SetKey(byte[] BlowFishKey)
+        public void Decrypt(byte[] rawData)
         {
-            _decryptKey = new KeyParameter(BlowFishKey);
-            _crypt.Init(false, _decryptKey);
+            Decrypt(rawData, Constants.HEADER_SIZE, rawData.Length - Constants.HEADER_SIZE);
         }
 
         public void Decrypt(byte[] raw, int offset, int size)
@@ -57,7 +49,7 @@ namespace L2Monitor.Login
                 }
             }
 
-            var cryptToUse = IsInitial ? STATIC_CRYPT : _crypt;
+            var cryptToUse = _keySet ? _crypt : STATIC_CRYPT;
 
             for (int i = offset; i < (offset + size); i += 8)
             {
@@ -72,7 +64,7 @@ namespace L2Monitor.Login
             }
         }
 
-        
+
         public void DecXORPass(byte[] raw)
         {
             //2 byte header
@@ -101,6 +93,94 @@ namespace L2Monitor.Login
                 Array.Copy(edxBytes, 0, raw, pos, edxBytes.Length);
                 pos -= 4;
             }
+        }
+
+        public void javaDecXORPass(byte[] raw)
+        {
+            int count = raw.Length / 4;
+            int pos = (count - 1) * 4;
+            int ecx;
+
+            ecx = (raw[--pos] & 0xFF) << 24;
+            ecx |= (raw[--pos] & 0xFF) << 16;
+            ecx |= (raw[--pos] & 0xFF) << 8;
+            ecx |= (raw[--pos] & 0xFF);
+
+            int val;
+            while (pos > 4)
+            {
+                raw[--pos] ^= (byte)(ecx >> 24);
+                val = (raw[pos] & 0xFF) << 24;
+                raw[--pos] ^= (byte)(ecx >> 16);
+                val += (raw[pos] & 0xFF) << 16;
+                raw[--pos] ^= (byte)(ecx >> 8);
+                val += (raw[pos] & 0xFF) << 8;
+                raw[--pos] ^= (byte)ecx;
+                val += (raw[pos] & 0xFF);
+
+                ecx = ecx - val;
+            }
+        }
+
+        public bool JavaChecksum(byte[] raw)
+        {
+            long chksum = 0;
+            int count = raw.Length - 4;
+            long ecx = -1; //avoids ecs beeing == chksum if an error occured in the try
+            int i = 0;
+            try
+            {
+                for (i = 0; i < count; i += 4)
+                {
+                    ecx = raw[i] & 0xff;
+                    ecx |= raw[i + 1] << 8 & 0xff00;
+                    ecx |= raw[i + 2] << 0x10 & 0xff0000;
+                    ecx |= raw[i + 3] << 0x18 & 0xff000000;
+
+                    chksum ^= ecx;
+                }
+
+                ecx = raw[i] & 0xff;
+                ecx |= raw[i + 1] << 8 & 0xff00;
+                ecx |= raw[i + 2] << 0x10 & 0xff0000;
+                ecx |= raw[i + 3] << 0x18 & 0xff000000;
+
+            }
+            catch (Exception e)
+            {
+                logger.Error("Error validating checksum");
+                //Looks like this will only happen on incoming packets as outgoing ones are padded
+                //and the error can only happen in last raw[i] =, raw [i+1] = ... and it doesnt really matters for incomming packets
+            }
+
+            return ecx == chksum;
+        }
+
+        public bool Checksum(byte[] raw)
+        {
+            uint chksum = 0;
+            int count = raw.Length - 4;
+            uint ecx = 1; //avoids ecs beeing == chksum if an error occured in the try
+            try
+            {
+                var i = 0;
+                for (; i < count; i += 4)
+                {
+                    ecx = BitConverter.ToUInt32(raw, i);
+                    chksum ^= ecx;
+                }
+
+                //ecx = BitConverter.ToUInt32(raw, i);
+
+            }
+            catch (Exception e)
+            {
+                logger.Error("Error validating checksum");
+                //Looks like this will only happen on incoming packets as outgoing ones are padded
+                //and the error can only happen in last raw[i] =, raw [i+1] = ... and it doesnt really matters for incomming packets
+            }
+
+            return ecx == chksum;
         }
     }
 }

@@ -10,41 +10,53 @@ namespace L2Monitor.Login
 {
     public class Init : BasePacket
     {
-        public int SessionId { get; set; }
-        public int ProtocolVersion { get; set; }
-        public byte[] RSAPublicKey { get; set; }
-        public int Unknown1 { get; private set; }
+        public uint SessionId { get; private set; }
+        public uint ProtocolVersion { get; private set; }
+        public byte[] RSAPublicKey { get; private set; }
+        public uint Unknown1 { get; private set; }
         public int Unknown2 { get; private set; }
         public int Unknown3 { get; private set; }
         public int Unknown4 { get; private set; }
-        public byte[] BlowFishKey { get; set; }
+        public int Unknown5 { get; private set; }
+        public byte[] BlowFishKey { get; private set; }
+        public int Unknown6 { get; private set; }
+        public byte[] UnknownBytes { get; private set; }
+        public int Unknown7 { get; private set; }
+        public uint Unknown8 { get; private set; }
 
-        private readonly ILogger logger;
         public Init(MemoryStream raw) : base(raw)
         {
-            logger = Log.ForContext<Init>();
-            SessionId = readInt();
-            ProtocolVersion = readInt();
+            SessionId = readUInt();
+            
+            ProtocolVersion = readUInt();
+            if (ProtocolVersion != 50721)
+            {
+                LogNewDataWarning(nameof(ProtocolVersion), ProtocolVersion);
+            }
+            
             RSAPublicKey = readBytes(128);
 
             //GG related, 0 in new client
-            Unknown1 = readInt();
             Unknown2 = readInt();
             Unknown3 = readInt();
             Unknown4 = readInt();
+            Unknown5 = readInt();
 
             BlowFishKey = readBytes(16);
-
-            if(HasRemainingData())
+            Unknown6 = readInt();
+            if (Unknown6 != 133123)
             {
-                var data = GetRemainingData();
-                logger.Warning($"This packet has remaining data: {BitConverter.ToString(data)}");
+                LogNewDataWarning(nameof(Unknown6), Unknown6);
             }
+            UnknownBytes = readBytes(11);
+            Unknown7 = readInt();
+            if (Unknown7 != 0)
+            {
+                LogNewDataWarning(nameof(Unknown7), Unknown7);
+            }
+            Unknown8 = readUInt();
+            WarnOnRemainingData();
         }
 
-        public override void Parse()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

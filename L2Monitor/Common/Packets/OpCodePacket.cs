@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Serilog;
 using System.IO;
-using System.Text;
 
 namespace L2Monitor.Common.Packets
 {
@@ -11,9 +9,5 @@ namespace L2Monitor.Common.Packets
         {
         }
 
-        public override void Parse()
-        {
-            
-        }
     }
 }

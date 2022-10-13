@@ -1,4 +1,6 @@
 ﻿using L2Monitor.Common.Packets;
+using L2Monitor.Game.Packets.Incomming;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,9 +24,6 @@ namespace L2Monitor.Game.Packets.Outgoing
             LoginKey2 = readInt();
         }
 
-        public override void Parse()
-        {
-            throw new NotImplementedException();
-        }
+
     }
 }

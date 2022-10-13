@@ -1,5 +1,4 @@
 ﻿using L2Monitor.Common;
-using L2Monitor.Common.Packets;
 using L2Monitor.Login;
 using L2Monitor.Util;
 using Microsoft.Extensions.Hosting;
@@ -9,13 +8,12 @@ using PacketDotNet.Connections;
 using SharpPcap;
 using System;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace L2Monitor.Services
 {
-    public class PacketInterceptionService: IHostedService
+    public class PacketInterceptionService : IHostedService
     {
         private TcpConnectionManager ConnectionManager;
         private ICaptureDevice CaptureDevice;
@@ -34,7 +32,7 @@ namespace L2Monitor.Services
             Console.WriteLine("SharpPcap {0}, Example6.DumpTCP.cs", ver);
             Console.WriteLine();
 
-            
+
             /* Retrieve the device list */
             var devices = CaptureDeviceList.Instance;
 
@@ -64,26 +62,25 @@ namespace L2Monitor.Services
             i = int.Parse(Console.ReadLine());
 
             CaptureDevice = devices[i];
-
             //Register our handler function to the 'packet arrival' event
             CaptureDevice.OnPacketArrival += device_OnPacketArrival;
 
             // Open the device for capturing
             int readTimeoutMilliseconds = 1000;
-            CaptureDevice.Open(DeviceMode.Promiscuous, readTimeoutMilliseconds);
+            CaptureDevice.Open(DeviceModes.Promiscuous, readTimeoutMilliseconds);
             ConnectionManager = new TcpConnectionManager();
             ConnectionManager.OnConnectionFound += TcpConnectionManager_OnConnectionFound; ;
             //tcpdump filter to capture only TCP/IP packets
             //host 109.105.133.76 and
             Logger.LogInformation("Ruoff Login: 5.63.132.147");
-            Logger.LogInformation("Ruoff shyeed Game: 109.105.133.76");
+            Logger.LogInformation("Ruoff shyeed Game: 109.105.133.38");
             Console.WriteLine("-- Enter login server IP i.e. 127.0.0.1: ");
             var lognIp = Console.ReadLine();
 
             Console.WriteLine("-- Enter game server IP i.e. 127.0.0.1: ");
             var gameIp = Console.ReadLine();
 
-            string filter = $"(host {(string.IsNullOrEmpty(gameIp) ? "109.105.133.76" : gameIp)} or " +
+            string filter = $"(host {(string.IsNullOrEmpty(gameIp) ? "109.105.133.38" : gameIp)} or " +
                              $"host {(string.IsNullOrEmpty(lognIp) ? "5.63.132.147" : lognIp)}) and " +
                             $"(tcp src port 2106 or " +
                               "tcp dst port 2106 or " +
@@ -118,13 +115,14 @@ namespace L2Monitor.Services
         }
 
 
-        private void device_OnPacketArrival(object sender, CaptureEventArgs e)
+        private void device_OnPacketArrival(object sender, PacketCapture e)
         {
-            var packet = Packet.ParsePacket(e.Packet.LinkLayerType,
-                                             e.Packet.Data);
+            var pck = e.GetPacket();
+            var packet = Packet.ParsePacket(pck.LinkLayerType,
+                                             pck.Data);
 
             var tcpPacket = packet.Extract<TcpPacket>();
-            if(tcpPacket == null || tcpPacket.PayloadData.Length == 0)
+            if (tcpPacket == null || tcpPacket.PayloadData.Length == 0)
             {
                 return;
             }
@@ -144,11 +142,11 @@ namespace L2Monitor.Services
             //Logger.LogInformation($"{dest} DEC Data: {BitConverter.ToString(data)}");
             //var ipv4Packet = packet.Extract<IPv4Packet>();
 
-            ConnectionManager.ProcessPacket(e.Packet.Timeval, tcpPacket);
+            ConnectionManager.ProcessPacket(pck.Timeval, tcpPacket);
 
         }
-        
-        
+
+
 
         public Task StartAsync(CancellationToken cancellationToken)
         {

@@ -1,16 +1,14 @@
-﻿using PacketDotNet;
+﻿using L2Monitor.Common;
 using L2Monitor.Common.Packets;
+using L2Monitor.GameServer.Packets;
+using L2Monitor.GameServer.Packets.Incomming;
 using L2Monitor.Util;
+using PacketDotNet;
+using PacketDotNet.Connections;
+using Serilog;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using Serilog;
-using L2Monitor.Common;
-using L2Monitor.GameServer.Packets.Incomming;
-using L2Monitor.GameServer.Packets;
-using PacketDotNetConnections;
 
 namespace L2Monitor.GameServer
 {
@@ -53,7 +51,7 @@ namespace L2Monitor.GameServer
                 incompletePacketData = incompletePacketData.Concat(data).ToArray();
                 return;
             }
-            if(incompletePacketData.Length > 0 && direction == PacketDirection.ServerToClient)
+            if (incompletePacketData.Length > 0 && direction == PacketDirection.ServerToClient)
             {
                 data = incompletePacketData.Concat(data).ToArray();
                 incompletePacketData = Array.Empty<byte>();
@@ -72,7 +70,9 @@ namespace L2Monitor.GameServer
                 {
                     Logger.Error("Size mismatch, Data: {datasize}; Read: {regsize}", data.Length, registeredSize);
                 }
-
+                //maybe we should not shift if data size mismatch?
+                //should we wait for all the packets and then decrypt shift?
+                gameCrypt.shftKey(offset, data.Length, direction);
             }
 
 
@@ -95,8 +95,8 @@ namespace L2Monitor.GameServer
 
         private IBasePacket ParsePacket(byte[] data, PacketDirection direction)
         {
-            var test = new OpCodePacket(new MemoryStream(data));
-            if (test.OpCode.Id1 == 0)
+            var test = new OpCode(data);
+            if (test.Id1 == 0)
             {
                 Logger.Error("{direction}: Received Zero Code packet. Payload:{data}", direction, BitConverter.ToString(data));
                 return null;
@@ -104,10 +104,10 @@ namespace L2Monitor.GameServer
             var packetList = direction == PacketDirection.ServerToClient ? GamePackets.ServerToClientPackets :
                                                                GamePackets.ClientToServerPackets;
 
-            var cp = packetList.Where(p => p.OpCode.Match(test.OpCode)).FirstOrDefault();
+            var cp = packetList.Where(p => p.OpCode.Match(test)).FirstOrDefault();
             if (cp == null)
             {
-                Logger.Warning($"{direction}: Unknown packet {test.OpCode.ToInfoString()} Data:{BitConverter.ToString(data)}");
+                Logger.Warning($"{direction}: Unknown packet {test.ToInfoString()} Data:{BitConverter.ToString(data)}");
                 return null;
             }
             //Logger.Information($"{direction}: Found Packet {test.OpCode.ToInfoString()} Type:{cp.Packet} Data:{BitConverter.ToString(data)}");

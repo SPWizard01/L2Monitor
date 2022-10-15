@@ -41,6 +41,8 @@ namespace L2Monitor.LoginServer
         public void Decrypt(byte[] raw, int offset, int size)
         {
             //BouncyCastle uses big endian for everything so we need to reverse
+
+            //NEW: assumption above might be incorrect, might be just custom stuff from login, game server does not exert this behaviour
             if (BitConverter.IsLittleEndian)
             {
                 for (int i = offset; i < offset + size; i += 4)

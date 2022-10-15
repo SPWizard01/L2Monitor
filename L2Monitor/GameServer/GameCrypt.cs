@@ -70,24 +70,25 @@ namespace L2Monitor.GameServer
                 temp = temp2;
             }
 
-            shftKey(offset, size, useKey);
+            //shftKey(offset, size, useKey);
 
         }
 
-        private static void shftKey(int offset, int size, byte[] useKey)
+        public void shftKey(int offset, int size, PacketDirection whichKey)
         {
+            var useKey = whichKey == PacketDirection.ServerToClient ? serverToClientKey : clientToServerKey;
             //SHIFT KEY PART
             //uint old = useKey[8] & (uint)0xff;
             //old |= (uint)useKey[9] << 8 & 0xff00; 
             //old |= (uint)useKey[10] << 0x10 & (uint)0xff0000;
             //old |= (uint)useKey[11] << 0x18 & 0xff000000;
-            
+
             var old = BitConverter.ToUInt32(useKey, 8);
-            //var gg = BitConverter.ToInt32(useKey, 8);
-            //if (gg != old)
-            //{
-            //    Debugger.Break();
-            //}
+            var gg = BitConverter.ToInt32(useKey, 8);
+            if (gg != old)
+            {
+                Debugger.Break();
+            }
             old += (uint)(size - offset); // FUCKING BUG!! min. 24h waste of time!!! =(
             //old += (uint)(size);
             BitConverter.GetBytes(old).CopyTo(useKey, 8);

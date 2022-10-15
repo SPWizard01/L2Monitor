@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using L2Monitor.GameServer;
-using PacketDotNetConnections;
 using L2Monitor.LoginServer;
+using PacketDotNet.Connections;
 
 namespace L2Monitor.Common
 {

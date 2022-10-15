@@ -20,15 +20,14 @@ namespace L2Monitor.Common.Packets
             _decryptedStream = memStream;
             baseLogger = Log.ForContext(GetType());
             PacketSize = readUInt16();
-            var byteOpCode = readByte();
-            short shortOpCode = 0;
-
-            if (byteOpCode == 0xFE)
+            OpCode = new OpCode(memStream.ToArray());
+            //skip opcode
+            readByte();
+            if (OpCode.Id2 > 0)
             {
-                //this is extended packet
-                shortOpCode = readInt16();
+                //this is extended packet skip another 2 bytes
+                readUInt16();
             }
-            OpCode = new OpCode(byteOpCode, shortOpCode);
         }
         internal void LogNewDataWarning(string dataName, object data)
         {

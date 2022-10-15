@@ -4,7 +4,7 @@ using L2Monitor.Util;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PacketDotNet;
-using PacketDotNetConnections;
+using PacketDotNet.Connections;
 using SharpPcap;
 using System;
 using System.Linq;
@@ -29,7 +29,7 @@ namespace L2Monitor.Services
         {
             var ver = Pcap.Version;
             /* Print SharpPcap version */
-            Console.WriteLine("SharpPcap {0}, Example6.DumpTCP.cs", ver);
+            Console.WriteLine("SharpPcap {0}", ver);
             Console.WriteLine();
 
 
@@ -66,8 +66,8 @@ namespace L2Monitor.Services
             CaptureDevice.OnPacketArrival += device_OnPacketArrival;
 
             // Open the device for capturing
-            int readTimeoutMilliseconds = 1000;
-            CaptureDevice.Open(DeviceModes.Promiscuous, readTimeoutMilliseconds);
+            int readTimeoutMilliseconds = 500;
+            CaptureDevice.Open(DeviceModes.None, readTimeoutMilliseconds);
             ConnectionManager = new TcpConnectionManager();
             ConnectionManager.OnConnectionFound += TcpConnectionManager_OnConnectionFound; ;
             //tcpdump filter to capture only TCP/IP packets

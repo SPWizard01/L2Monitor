@@ -4,7 +4,7 @@ using L2Monitor.LoginServer.Packets;
 using L2Monitor.LoginServer.Packets.Incoming;
 using L2Monitor.Util;
 using PacketDotNet;
-using PacketDotNetConnections;
+using PacketDotNet.Connections;
 using Serilog;
 using System;
 using System.IO;
@@ -75,7 +75,7 @@ namespace L2Monitor.LoginServer
                 var direction = PacketDirection.ServerToClient;
                 var test = GetOpCodePacket(data, direction);
                 //not init packet.
-                if (!test.OpCode.Match(LoginOpCodes.Init) && !inited)
+                if (!test.Match(LoginOpCodes.Init) && !inited)
                 {
                     logger.Warning("{direction} Unknown packet before init {data}", direction, BitConverter.ToString(data));
                     return;
@@ -100,25 +100,25 @@ namespace L2Monitor.LoginServer
 
         }
 
-        private OpCodePacket GetOpCodePacket(byte[] data, PacketDirection direction)
+        private OpCode GetOpCodePacket(byte[] data, PacketDirection direction)
         {
             Crypt.Decrypt(data);
 
-            var test = new OpCodePacket(new MemoryStream(data));
-            if (test.OpCode.Id1 == 0 && inited)
+            var test = new OpCode(data);
+            if (test.Id1 == 0 && inited)
             {
-                logger.Error($"{direction}: Received Zero Length packet. Payload:{BitConverter.ToString(data)}");
+                logger.Error($"{direction}: Received Zero Code packet. Payload:{BitConverter.ToString(data)}");
             }
             return test;
         }
 
-        private IBasePacket GetInstance(OpCodePacket test, PacketDirection direction, byte[] data)
+        private IBasePacket GetInstance(OpCode test, PacketDirection direction, byte[] data)
         {
             var packetList = direction == PacketDirection.ServerToClient ? LoginPackets.ServerToClientPackets : LoginPackets.ClientToServerPackets;
-            var cp = packetList.Where(p => p.OpCode.Match(test.OpCode)).FirstOrDefault();
+            var cp = packetList.Where(p => p.OpCode.Match(test)).FirstOrDefault();
             if (cp == null)
             {
-                logger.Warning($"{direction}: Unknown packet {test.OpCode.ToInfoString()} Data:{BitConverter.ToString(data)}");
+                logger.Warning($"{direction}: Unknown packet {test.ToInfoString()} Data:{BitConverter.ToString(data)}");
                 return null;
             }
 

@@ -20,7 +20,7 @@ namespace L2Monitor.Common.Packets
                 Packet = typeof(T)
             };
         }
-        public static InListPacket FromPacketId<T>(byte byteOpCode, short shortOpCode) where T : IBasePacket
+        public static InListPacket FromPacketId<T>(byte byteOpCode, ushort shortOpCode) where T : IBasePacket
         {
             return new InListPacket
             {

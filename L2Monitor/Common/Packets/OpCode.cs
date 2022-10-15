@@ -1,25 +1,33 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
 
 namespace L2Monitor.Common.Packets
 {
     public class OpCode
     {
         public byte Id1 { get; set; }
-        public short Id2 { get; set; }
+        public ushort Id2 { get; set; }
         public OpCode(byte byteOpCode)
         {
             Id1 = byteOpCode;
             Id2 = 0;
         }
 
-        public OpCode(byte byteOpCode, short shortOpCode2)
+        public OpCode(byte byteOpCode, ushort shortOpCode2)
         {
             Id1 = byteOpCode;
             Id2 = shortOpCode2;
+        }
+
+
+        public OpCode(byte[] raw)
+        {
+            Id1 = raw[2];
+            Id2 = 0;
+            if (Id1 == 0xFE)
+            {
+                Id2 = BitConverter.ToUInt16(raw, 3);
+            }
         }
 
         public bool Match(byte byteOpCode)
@@ -27,7 +35,7 @@ namespace L2Monitor.Common.Packets
             return Id1 == byteOpCode && Id2 == 0;
         }
 
-        public bool Match(byte byteOpCode, short shortOpCode)
+        public bool Match(byte byteOpCode, ushort shortOpCode)
         {
             return Id1 == byteOpCode && Id2 == shortOpCode;
         }

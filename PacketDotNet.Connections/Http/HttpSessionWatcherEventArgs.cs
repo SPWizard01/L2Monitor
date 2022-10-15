@@ -6,12 +6,12 @@
  */
 using System;
 
-namespace PacketDotNet.Connections.Http
+namespace PacketDotNetConnections.Http
 {
     /// <summary>
     /// Session watcher request event arguments
     /// </summary>
-    public class HttpSessionWatcherRequestEventArgs :EventArgs
+    public class HttpSessionWatcherRequestEventArgs : EventArgs
     {
         private HttpSessionWatcher sessionWatcher;
 
@@ -53,7 +53,7 @@ namespace PacketDotNet.Connections.Http
     /// <summary>
     /// Session watcher status event arguments
     /// </summary>
-    public class HttpSessionWatcherStatusEventArgs :EventArgs
+    public class HttpSessionWatcherStatusEventArgs : EventArgs
     {
         private HttpSessionWatcher sessionWatcher;
 

@@ -1,10 +1,10 @@
 ﻿using L2Monitor.Common;
-using L2Monitor.Login;
+using L2Monitor.LoginServer;
 using L2Monitor.Util;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using PacketDotNet;
-using PacketDotNet.Connections;
+using PacketDotNetConnections;
 using SharpPcap;
 using System;
 using System.Linq;
@@ -79,9 +79,14 @@ namespace L2Monitor.Services
 
             Console.WriteLine("-- Enter game server IP i.e. 127.0.0.1: ");
             var gameIp = Console.ReadLine();
+            //109.105.133.38 ru game
+            //5.63.132.147 ru login
 
-            string filter = $"(host {(string.IsNullOrEmpty(gameIp) ? "109.105.133.38" : gameIp)} or " +
-                             $"host {(string.IsNullOrEmpty(lognIp) ? "5.63.132.147" : lognIp)}) and " +
+            //52.44.183.4 us game naia
+            //50.16.39.66 us game chronos
+            //52.201.101.83 us login
+            string filter = $"(host {(string.IsNullOrEmpty(gameIp) ? "52.44.183.4" : gameIp)} or " +
+                             $"host {(string.IsNullOrEmpty(lognIp) ? "52.201.101.83" : lognIp)}) and " +
                             $"(tcp src port 2106 or " +
                               "tcp dst port 2106 or " +
                               "tcp src port 7777 or " +

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using Serilog;
 
 namespace L2Monitor.Common.Packets
@@ -10,7 +11,9 @@ namespace L2Monitor.Common.Packets
     {
         private readonly MemoryStream _decryptedStream;
         internal readonly ILogger baseLogger;
+        [JsonIgnore]
         public ushort PacketSize { get; set; }
+        [JsonIgnore]
         public OpCode OpCode { get; set; }
         public BasePacket(MemoryStream memStream)
         {
@@ -73,7 +76,8 @@ namespace L2Monitor.Common.Packets
 
         public double readDouble()
         {
-            var result = BitConverter.Int64BitsToDouble(BitConverter.ToInt64(readBytes(8), 0));
+            //var result = BitConverter.Int64BitsToDouble(BitConverter.ToInt64(readBytes(8), 0));
+            var result = BitConverter.ToDouble(readBytes(8), 0);
             return result;
         }
 
@@ -86,6 +90,11 @@ namespace L2Monitor.Common.Packets
         public long readLong()
         {
             var result = BitConverter.ToInt64(readBytes(8), 0);
+            return result;
+        }
+        public ulong readULong()
+        {
+            var result = BitConverter.ToUInt64(readBytes(8), 0);
             return result;
         }
 
@@ -126,9 +135,10 @@ namespace L2Monitor.Common.Packets
         public byte[] readBytes(int length)
         {
             var outData = new byte[length];
-            if (!_decryptedStream.CanRead || _decryptedStream.Position == _decryptedStream.Length)
+            var remainingData = _decryptedStream.Length - _decryptedStream.Position;
+            if (!_decryptedStream.CanRead || _decryptedStream.Position == _decryptedStream.Length || remainingData < length)
             {
-                baseLogger.Error("Attempting to read {readcount} bytes outside bounds. Current stream position {position}; length {length}", length, _decryptedStream.Position, _decryptedStream.Length);
+                baseLogger.Error("Attempting to read {readcount} bytes at {position}. Remaining data: {remdata}", length, _decryptedStream.Position, remainingData);
                 baseLogger.Error("Full packet {packet}", BitConverter.ToString(_decryptedStream.ToArray()));
                 return outData;
             }

@@ -6,10 +6,11 @@
  */
 using System;
 using System.Collections.Generic;
+using PacketDotNet;
 using Serilog;
 using SharpPcap;
 
-namespace PacketDotNet.Connections
+namespace PacketDotNetConnections
 {
     /// <summary>
     /// Represents a tcp connection
@@ -78,20 +79,20 @@ namespace PacketDotNet.Connections
             // fields but that would require us to keep two hashes so we could
             // quickly match the tcp packet hash to either of the two hashes
             // generated
-            if(
-               ((Flows[0].port.Equals(tcp.SourcePort)) &&
-               (Flows[0].address.Equals(ip.SourceAddress)) &&
-               (Flows[1].port.Equals(tcp.DestinationPort)) &&
-               (Flows[1].address.Equals(ip.DestinationAddress))))
+            if (
+               Flows[0].port.Equals(tcp.SourcePort) &&
+               Flows[0].address.Equals(ip.SourceAddress) &&
+               Flows[1].port.Equals(tcp.DestinationPort) &&
+               Flows[1].address.Equals(ip.DestinationAddress))
             {
                 return Flows[0];
             }
 
-            if(
-               ((Flows[1].port.Equals(tcp.SourcePort)) &&
-               (Flows[1].address.Equals(ip.SourceAddress)) &&
-               (Flows[0].port.Equals(tcp.DestinationPort)) &&
-               (Flows[0].address.Equals(ip.DestinationAddress))))
+            if (
+               Flows[1].port.Equals(tcp.SourcePort) &&
+               Flows[1].address.Equals(ip.SourceAddress) &&
+               Flows[0].port.Equals(tcp.DestinationPort) &&
+               Flows[0].address.Equals(ip.DestinationAddress))
             {
                 return Flows[1];
             }
@@ -109,7 +110,7 @@ namespace PacketDotNet.Connections
         /// A <see cref="TcpPacket"/>
         /// </param>
         /// <returns>
-        /// A <see cref="System.Int32"/>
+        /// A <see cref="int"/>
         /// </returns>
         public static int GenerateConnectionHash(IPPacket ip, TcpPacket tcp)
         {
@@ -157,7 +158,7 @@ namespace PacketDotNet.Connections
         {
             get
             {
-                if((DateTime.Now - LastPacketReceived) > Timeout)
+                if (DateTime.Now - LastPacketReceived > Timeout)
                     return true;
                 return false;
             }
@@ -176,9 +177,9 @@ namespace PacketDotNet.Connections
         {
             TcpFlow foundFlow = null;
 
-            foreach(var flow in Flows)
+            foreach (var flow in Flows)
             {
-                if(flow.Matches(tcp))
+                if (flow.Matches(tcp))
                 {
                     foundFlow = flow;
                     break;
@@ -233,7 +234,7 @@ namespace PacketDotNet.Connections
         /// <param name="tcp">
         /// A <see cref="TcpPacket"/>
         /// </param>
-        public TcpConnection (TcpPacket tcp)
+        public TcpConnection(TcpPacket tcp)
         {
             ConnectionState = ConnectionStates.Open;
 
@@ -247,18 +248,18 @@ namespace PacketDotNet.Connections
             var flowA = new TcpFlow(ip.SourceAddress, tcp.SourcePort);
             Flows.Add(flowA);
 
-            var flowB =  new TcpFlow(ip.DestinationAddress, tcp.DestinationPort);
+            var flowB = new TcpFlow(ip.DestinationAddress, tcp.DestinationPort);
             Flows.Add(flowB);
 
             // start the close timer
             closeTimer.Enabled = true;
         }
 
-        void HandleCloseTimerElapsed (object sender, System.Timers.ElapsedEventArgs e)
+        void HandleCloseTimerElapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             Log.Debug("");
 
-            if(OnConnectionClosed != null)
+            if (OnConnectionClosed != null)
             {
                 OnConnectionClosed(null, this, null, CloseType.ConnectionTimeout);
             }
@@ -273,36 +274,36 @@ namespace PacketDotNet.Connections
             // reset the timer
             closeTimer.Interval = Timeout.TotalMilliseconds;
 
-            switch(ConnectionState)
+            switch (ConnectionState)
             {
-            case ConnectionStates.Open:
-                if(tcp.Finished && tcp.Acknowledgment)
-                {
-                    ConnectionState = ConnectionStates.WaitingForSecondFinAck;
-                }
-                break;
-
-            case ConnectionStates.WaitingForSecondFinAck:
-                if(tcp.Finished && tcp.Acknowledgment)
-                {
-                    ConnectionState = ConnectionStates.WaitingForFinalAck;
-                }
-                break;
-            case ConnectionStates.WaitingForFinalAck:
-                if(tcp.Acknowledgment)
-                {
-                    ConnectionState = ConnectionStates.Closed;
-
-                    // report connection closure
-                    if(OnConnectionClosed != null)
+                case ConnectionStates.Open:
+                    if (tcp.Finished && tcp.Acknowledgment)
                     {
-                        OnConnectionClosed(timeval, this, tcp, CloseType.FlowsClosed);
+                        ConnectionState = ConnectionStates.WaitingForSecondFinAck;
                     }
-                }
-                break;
+                    break;
+
+                case ConnectionStates.WaitingForSecondFinAck:
+                    if (tcp.Finished && tcp.Acknowledgment)
+                    {
+                        ConnectionState = ConnectionStates.WaitingForFinalAck;
+                    }
+                    break;
+                case ConnectionStates.WaitingForFinalAck:
+                    if (tcp.Acknowledgment)
+                    {
+                        ConnectionState = ConnectionStates.Closed;
+
+                        // report connection closure
+                        if (OnConnectionClosed != null)
+                        {
+                            OnConnectionClosed(timeval, this, tcp, CloseType.FlowsClosed);
+                        }
+                    }
+                    break;
             }
 
-            if(OnPacketReceived != null)
+            if (OnPacketReceived != null)
                 OnPacketReceived(timeval, this, flow, tcp);
         }
 
@@ -310,11 +311,11 @@ namespace PacketDotNet.Connections
         /// ToString() override
         /// </summary>
         /// <returns>
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </returns>
-        public override string ToString ()
+        public override string ToString()
         {
-            return string.Format ("[TcpConnection: HasTimedOut={0}, Flow[0] {1}, Flow[1] {2}]",
+            return string.Format("[TcpConnection: HasTimedOut={0}, Flow[0] {1}, Flow[1] {2}]",
                                   HasTimedOut,
                                   Flows[0],
                                   Flows[1]);

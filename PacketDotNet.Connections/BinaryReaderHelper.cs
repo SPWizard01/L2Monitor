@@ -8,14 +8,14 @@
 using Serilog;
 using System.IO;
 
-namespace PacketDotNet.Connections
+namespace PacketDotNetConnections
 {
     /// <summary>
     /// Helper class used for reading strings from a BinaryReader
     /// </summary>
     public class BinaryReaderHelper
     {
-        private static readonly ILogger Log = Serilog.Log.ForContext<BinaryReaderHelper>(); 
+        private static readonly ILogger Log = Serilog.Log.ForContext<BinaryReaderHelper>();
 
         /// <summary>
         /// Potential responses when reading strings
@@ -25,24 +25,24 @@ namespace PacketDotNet.Connections
             /// <summary>
             /// we don't have enough bytes to have a string
             /// </summary>
-            NeedMoreBytes           = 0,
+            NeedMoreBytes = 0,
 
             /// <summary>
             /// found a string but hit the end of the stream
             /// </summary>
-            StringAtEndOfStream     = 1,
+            StringAtEndOfStream = 1,
 
             /// <summary>
             /// a newline terminated the string
             /// </summary>
-            StringTerminatedByCrLf  = 2,
+            StringTerminatedByCrLf = 2,
 
             /// <summary>
             /// a character outside of the range of ascii characters
             /// was found, indicating that the BinaryReader likely
             /// contains binary, and not ascii, data
             /// </summary>
-            NonAsciiCharacterFound  = 3
+            NonAsciiCharacterFound = 3
         };
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace PacketDotNet.Connections
         /// A <see cref="BinaryReader"/>
         /// </param>
         /// <param name="s">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         /// <returns>
         /// A <see cref="ReadNextLineResponses"/>
@@ -80,7 +80,7 @@ namespace PacketDotNet.Connections
             Stream stream = br.BaseStream;
             long startingPosition = stream.Position;
 
-            if(startingPosition == stream.Length)
+            if (startingPosition == stream.Length)
             {
                 return ReadNextLineResponses.NeedMoreBytes;
             }
@@ -89,7 +89,7 @@ namespace PacketDotNet.Connections
             // the string
             int val = 0;
             int previousVal = 0;
-            while(previousVal != -1)
+            while (previousVal != -1)
             {
                 previousVal = val; // save the previous val
                 val = stream.ReadByte(); // read a new byte
@@ -97,13 +97,13 @@ namespace PacketDotNet.Connections
                 // if this value is outside of the range of ascii characters we should early out
                 // because we may never find the string terminating characters in
                 // a large binary stream
-                if(val > maxAsciiValue)
+                if (val > maxAsciiValue)
                 {
                     return ReadNextLineResponses.NonAsciiCharacterFound;
                 }
 
-                if((previousVal == crValue) &&
-                   (val == lfValue))
+                if (previousVal == crValue &&
+                   val == lfValue)
                 {
                     long stringLength = stream.Position - startingPosition - 2; // subtract 2 since we don't
                                                                                 // want to include the 0x0D and 0x0A
@@ -111,7 +111,7 @@ namespace PacketDotNet.Connections
                     byte[] stringBytes = br.ReadBytes((int)stringLength); // read the string
                     br.ReadUInt16(); // read past the 0x0D and 0x0A
 
-                    s = System.Text.ASCIIEncoding.ASCII.GetString(stringBytes);
+                    s = System.Text.Encoding.ASCII.GetString(stringBytes);
 
                     return ReadNextLineResponses.StringTerminatedByCrLf;
                 }
@@ -119,12 +119,12 @@ namespace PacketDotNet.Connections
 
             // if we read some bytes but not a lot of bytes then use what we got as a string
             long currentStreamPosition = stream.Position;
-            if(currentStreamPosition != startingPosition)
+            if (currentStreamPosition != startingPosition)
             {
                 long stringLength;
 
                 // don't include an ending 0x0D if we found one and then hit the end of the stream
-                if(previousVal == crValue)
+                if (previousVal == crValue)
                     stringLength = currentStreamPosition - startingPosition - 1;
                 else
                     stringLength = currentStreamPosition - startingPosition;
@@ -137,7 +137,7 @@ namespace PacketDotNet.Connections
                 // and hit the end of the stream
                 stream.Seek(0, SeekOrigin.End);
 
-                s = System.Text.ASCIIEncoding.ASCII.GetString(stringBytes);
+                s = System.Text.Encoding.ASCII.GetString(stringBytes);
 
                 return ReadNextLineResponses.StringAtEndOfStream;
             }

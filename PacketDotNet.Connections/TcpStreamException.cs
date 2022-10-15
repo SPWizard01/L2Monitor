@@ -6,7 +6,7 @@
  */
 using System;
 
-namespace PacketDotNet.Connections
+namespace PacketDotNetConnections
 {
     /// <summary>
     /// Base class for all tcp stream exceptions
@@ -24,7 +24,7 @@ namespace PacketDotNet.Connections
         /// Constructor with message
         /// </summary>
         /// <param name="message">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         public TcpStreamException(string message) : base(message)
         {
@@ -47,7 +47,7 @@ namespace PacketDotNet.Connections
         /// Constructor with message
         /// </summary>
         /// <param name="message">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         public TcpStreamPacketNotPartOfStreamException(string message) : base(message)
         {

@@ -7,7 +7,7 @@
 using Serilog;
 using System;
 
-namespace PacketDotNet.Connections.Http
+namespace PacketDotNetConnections.Http
 {
     /// <summary>
     /// Response to a http request
@@ -60,7 +60,7 @@ namespace PacketDotNet.Connections.Http
             /// <summary>
             /// Request accepted but not processed
             /// </summary>
-          Accepted_202 = 202,
+            Accepted_202 = 202,
 
             /// <summary>
             /// ??
@@ -70,7 +70,7 @@ namespace PacketDotNet.Connections.Http
             /// <summary>
             /// No content
             /// </summary>
-          No_Content_204 = 204,
+            No_Content_204 = 204,
 
             /// <summary>
             /// Reset content
@@ -90,7 +90,7 @@ namespace PacketDotNet.Connections.Http
             /// <summary>
             /// 3xx Redirection (client must take additional action to complete the request)
             /// </summary>
-              Multiple_Choices_300 = 300,
+            Multiple_Choices_300 = 300,
 
             /// <summary>
             /// Moved
@@ -120,7 +120,7 @@ namespace PacketDotNet.Connections.Http
             /// <summary>
             /// Switch proxy
             /// </summary>
-          Switch_Proxy_306 = 306,
+            Switch_Proxy_306 = 306,
 
             /// <summary>
             /// Temporary redirect
@@ -131,7 +131,7 @@ namespace PacketDotNet.Connections.Http
             /// Unknown
             /// </summary>
             Unknown = 99999 // we map all unknown values to this value
-                  // until we have enum values for all of the status codes
+                            // until we have enum values for all of the status codes
         }
 
         /// <summary>
@@ -152,12 +152,13 @@ namespace PacketDotNet.Connections.Http
             get
             {
                 string key = "Content-Type";
-                if(Headers.ContainsKey(key))
+                if (Headers.ContainsKey(key))
                 {
                     return Headers[key];
-                } else
+                }
+                else
                 {
-                    return String.Empty;
+                    return string.Empty;
                 }
             }
         }
@@ -174,12 +175,12 @@ namespace PacketDotNet.Connections.Http
         /// Handles the first line of the status/response message
         /// </summary>
         /// <param name="line">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         /// <returns>
         /// A <see cref="ProcessStatus"/>
         /// </returns>
-        protected override ProcessStatus ProcessRequestResponseFirstLineHandler (string line)
+        protected override ProcessStatus ProcessRequestResponseFirstLineHandler(string line)
         {
             Log.Debug($"line is '{line}'");
 
@@ -194,10 +195,10 @@ namespace PacketDotNet.Connections.Http
             // do we have the correct number of tokens? if not
             // report the error to the higher level code
             int expectedTokensLength = 3;
-            if(tokens.Length != expectedTokensLength)
+            if (tokens.Length != expectedTokensLength)
             {
                 Log.Debug($"tokens.Length {tokens.Length} != expectedTokensLength {expectedTokensLength}, returning ProcessStatus.Error");
-                foreach(string s in tokens)
+                foreach (string s in tokens)
                 {
                     Log.Debug("token is " + s);
                 }
@@ -205,17 +206,18 @@ namespace PacketDotNet.Connections.Http
             }
 
             // is the first token a valid method?
-            if(!StringToHttpVersion(tokens[0], out HttpVersion))
+            if (!StringToHttpVersion(tokens[0], out HttpVersion))
             {
                 Log.Debug("Unable to parse into an http version, returning ProcessStatus.Error");
                 return ProcessStatus.Error;
             }
 
             int statusCodeInt32;
-            if(!Int32.TryParse(tokens[1], out statusCodeInt32))
+            if (!int.TryParse(tokens[1], out statusCodeInt32))
             {
                 throw new HttpStatusCodeParsingException("could not parse " + tokens[1] + " into an integer for a status code");
-            } else
+            }
+            else
             {
                 StatusCode = (StatusCodes)statusCodeInt32;
             }
@@ -230,9 +232,9 @@ namespace PacketDotNet.Connections.Http
         /// ToString override
         /// </summary>
         /// <returns>
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </returns>
-        public override string ToString ()
+        public override string ToString()
         {
             return string.Format("StatusCode: {0} {1}",
                                  StatusCode, base.ToString());

@@ -8,7 +8,7 @@ using Serilog;
 using System;
 using System.Collections.Generic;
 
-namespace PacketDotNet.Connections.Http
+namespace PacketDotNetConnections.Http
 {
     /// <summary>
     /// HTTP request, the first phase of an http exchange
@@ -96,7 +96,7 @@ namespace PacketDotNet.Connections.Http
                 Dictionary<string, string> cookieDictionary = new Dictionary<string, string>();
 
                 // do we have any cookies in the header?
-                if(!Headers.ContainsKey("Cookie"))
+                if (!Headers.ContainsKey("Cookie"))
                 {
                     return cookieDictionary;
                 }
@@ -104,14 +104,14 @@ namespace PacketDotNet.Connections.Http
                 string cookieText = Headers["Cookie"];
 
                 // split the cookie into combined key/value pairs
-                string[] pairSplitDelmiters = new String[1];
+                string[] pairSplitDelmiters = new string[1];
                 pairSplitDelmiters[0] = "; ";
                 string[] cookies = cookieText.Split(pairSplitDelmiters, StringSplitOptions.None);
 
                 // split each combined key/value pair into a key and value
-                string[] keyValueSplitDelmiters = new String[1];
+                string[] keyValueSplitDelmiters = new string[1];
                 keyValueSplitDelmiters[0] = "=";
-                foreach(string keyvalue in cookies)
+                foreach (string keyvalue in cookies)
                 {
                     string[] key_and_value = keyvalue.Split(keyValueSplitDelmiters,
                                                             StringSplitOptions.None);
@@ -131,12 +131,12 @@ namespace PacketDotNet.Connections.Http
         ///    or wasn't valid
         /// </summary>
         /// <param name="line">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         /// <returns>
         /// A <see cref="ProcessStatus"/>
         /// </returns>
-        protected override ProcessStatus ProcessRequestResponseFirstLineHandler (string line)
+        protected override ProcessStatus ProcessRequestResponseFirstLineHandler(string line)
         {
             Log.Debug("line '{0}'", line);
 
@@ -146,7 +146,7 @@ namespace PacketDotNet.Connections.Http
             // do we have the correct number of tokens? if not
             // report the error to the higher level code
             int expectedTokensLength = 3;
-            if(tokens.Length != expectedTokensLength)
+            if (tokens.Length != expectedTokensLength)
             {
                 Log.Debug("tokens.Length {0} != expected number of {1}",
                           tokens.Length, expectedTokensLength);
@@ -154,20 +154,21 @@ namespace PacketDotNet.Connections.Http
             }
 
             // is the first token a valid method?
-            if(StringToMethod(tokens[0], out Method))
+            if (StringToMethod(tokens[0], out Method))
             {
                 // store the url and version as well
                 Url = tokens[1];
-                if(!StringToHttpVersion(tokens[2], out HttpVersion))
+                if (!StringToHttpVersion(tokens[2], out HttpVersion))
                 {
-                    string errorString = String.Format("unable to convert {0} to an http version", tokens[2]);
+                    string errorString = string.Format("unable to convert {0} to an http version", tokens[2]);
                     Log.Error(errorString);
                     return ProcessStatus.Error;
                 }
 
                 Log.Debug("returning ProcessStatus.Complete");
                 return ProcessStatus.Complete;
-            } else
+            }
+            else
             {
                 // not a warn because its ok to find unrecognized methods if we
                 // are incorrectly parsing a non-http stream as if it were http
@@ -182,34 +183,34 @@ namespace PacketDotNet.Connections.Http
         /// Covert the text of a method into its enum value
         /// </summary>
         /// <param name="token">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         /// <param name="method">
         /// A <see cref="Methods"/>
         /// </param>
         /// <returns>
-        /// A <see cref="System.Boolean"/>
+        /// A <see cref="bool"/>
         /// </returns>
         public static bool StringToMethod(string token,
                                           out Methods method)
         {
             method = Methods.Unknown;
 
-            if(token == "HEAD")
+            if (token == "HEAD")
                 method = Methods.Head;
-            else if(token == "GET")
+            else if (token == "GET")
                 method = Methods.Get;
-            else if(token == "POST")
+            else if (token == "POST")
                 method = Methods.Post;
-            else if(token == "PUT")
+            else if (token == "PUT")
                 method = Methods.Put;
-            else if(token == "DELETE")
+            else if (token == "DELETE")
                 method = Methods.Delete;
-            else if(token == "TRACE")
+            else if (token == "TRACE")
                 method = Methods.Trace;
-            else if(token == "OPTIONS")
+            else if (token == "OPTIONS")
                 method = Methods.Options;
-            else if(token == "CONNECT")
+            else if (token == "CONNECT")
                 method = Methods.Connect;
             else
                 return false; // no match, return false
@@ -221,11 +222,11 @@ namespace PacketDotNet.Connections.Http
         /// ToString override
         /// </summary>
         /// <returns>
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </returns>
-        public override string ToString ()
+        public override string ToString()
         {
-            return String.Format("Method: {0}, Url: {1}, {2}",
+            return string.Format("Method: {0}, Url: {1}, {2}",
                                  Method, Url, base.ToString());
         }
     }

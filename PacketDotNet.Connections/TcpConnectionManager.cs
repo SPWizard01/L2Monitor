@@ -7,10 +7,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using PacketDotNet;
 using Serilog;
 using SharpPcap;
 
-namespace PacketDotNet.Connections
+namespace PacketDotNetConnections
 {
     /// <summary>
     /// High level tcp connection manager
@@ -42,8 +43,8 @@ namespace PacketDotNet.Connections
         /// <summary>
         /// Constructor
         /// </summary>
-        public TcpConnectionManager ()
-        {        }
+        public TcpConnectionManager()
+        { }
 
 
 
@@ -69,10 +70,10 @@ namespace PacketDotNet.Connections
             IEnumerable<TcpConnection> connsToIterate;
             lock (Connections)
                 connsToIterate = Connections.ToArray();
-            foreach(var c in connsToIterate)
+            foreach (var c in connsToIterate)
             {
                 foundFlow = c.IsMatch(tcp);
-                if(foundFlow != null)
+                if (foundFlow != null)
                 {
                     foundConnection = c;
                     break;
@@ -82,14 +83,15 @@ namespace PacketDotNet.Connections
             TcpConnection connectionToUse;
             TcpFlow flowToUse;
 
-            if(foundConnection == null)
+            if (foundConnection == null)
             {
                 Log.Debug("foundConnection == null");
 
-                if(tcp.Reset)
+                if (tcp.Reset)
                 {
                     Log.Debug("creating new connection, RST flag is set");
-                } else
+                }
+                else
                 {
                     Log.Debug("creating new connection, RST flag is not set");
                 }
@@ -107,7 +109,8 @@ namespace PacketDotNet.Connections
 
                 lock (Connections)
                     Connections.Add(connectionToUse);
-            } else
+            }
+            else
             {
                 // use the flows that we found
                 connectionToUse = foundConnection;
@@ -137,13 +140,13 @@ namespace PacketDotNet.Connections
         /// <param name="closeType">
         /// A <see cref="TcpConnection.CloseType"/>
         /// </param>
-        void HandleConnectionToUseOnConnectionClosed (PosixTimeval timeval,
+        void HandleConnectionToUseOnConnectionClosed(PosixTimeval timeval,
                                                       TcpConnection connection,
                                                       TcpPacket tcp,
                                                       TcpConnection.CloseType closeType)
         {
             // remove the connection from the list
-            lock(Connections)
+            lock (Connections)
                 Connections.Remove(connection);
         }
     }

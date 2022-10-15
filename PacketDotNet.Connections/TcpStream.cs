@@ -5,11 +5,12 @@
  * Commercial licensing available
  */
 
+using PacketDotNet;
 using Serilog;
 using System.Collections.Generic;
 using System.IO;
 
-namespace PacketDotNet.Connections
+namespace PacketDotNetConnections
 {
     /// <summary>
     /// The stream operates on a few basic principles
@@ -48,12 +49,12 @@ namespace PacketDotNet.Connections
 
             public PacketInfo(long Seq, long Length, long Offset)
             {
-                this.seq = Seq;
-                this.length = Length;
-                this.offset = Offset;
+                seq = Seq;
+                length = Length;
+                offset = Offset;
             }
         }
-        LinkedList<PacketInfo> packets;        
+        LinkedList<PacketInfo> packets;
 
         private TcpPacket _firstPacket;
 
@@ -87,13 +88,13 @@ namespace PacketDotNet.Connections
 #endif
 
             // if we are initialized we should validate the new packet
-            if(FirstPacket != null)
+            if (FirstPacket != null)
             {
                 var newIpPacket = (IPPacket)newPacket.ParentPacket;
                 var firstIpPacket = (IPPacket)FirstPacket.ParentPacket;
 
                 // does this packets settings match that of the stream?
-                if(!firstIpPacket.SourceAddress.Equals(newIpPacket.SourceAddress) ||
+                if (!firstIpPacket.SourceAddress.Equals(newIpPacket.SourceAddress) ||
                    !FirstPacket.SourcePort.Equals(newPacket.SourcePort) ||
                    !firstIpPacket.DestinationAddress.Equals(newIpPacket.DestinationAddress) ||
                    !FirstPacket.DestinationPort.Equals(newPacket.DestinationPort))
@@ -103,7 +104,8 @@ namespace PacketDotNet.Connections
                     Log.Error(error);
                     throw new TcpStreamPacketNotPartOfStreamException(error);
                 }
-            } else // store the first packet
+            }
+            else // store the first packet
             {
 #if PERFORMANCE_CRITICAL_LOGGING
                 log.DebugFormat("storing FirstPacket of {0}", newPacket);
@@ -120,7 +122,7 @@ namespace PacketDotNet.Connections
 #endif
 
             // we drop zero length packets, see the documentation for this method
-            if(payloadLength == 0)
+            if (payloadLength == 0)
             {
 #if PERFORMANCE_CRITICAL_LOGGING
                 log.Debug("dropping zero length packet");
@@ -172,7 +174,7 @@ namespace PacketDotNet.Connections
                             base.Length, base.Position);
 #endif
             LinkedListNode<PacketInfo> pos = packets.First;
-            while(pos != null)
+            while (pos != null)
             {
 #if PERFORMANCE_CRITICAL_LOGGING
                 log.DebugFormat("pos.Value.offset {0}, pos.Value.length {1}",
@@ -180,7 +182,7 @@ namespace PacketDotNet.Connections
 #endif
                 // if our position is less than the last byte in 'pos' then
                 // 'pos' is the current packet
-                if(base.Position < (pos.Value.offset + pos.Value.length))
+                if (base.Position < pos.Value.offset + pos.Value.length)
                 {
                     break;
                 }
@@ -207,13 +209,13 @@ namespace PacketDotNet.Connections
             LinkedListNode<PacketInfo> currentPacket = GetCurrentPosition();
 
             // if we have no current packet we are done, there is no next packet
-            if(currentPacket == null)
+            if (currentPacket == null)
             {
                 return false;
             }
 
             // if we have no next packet seek to the byte following the end of the stream
-            if(currentPacket.Next == null)
+            if (currentPacket.Next == null)
             {
 #if PERFORMANCE_CRITICAL_LOGGING
                 log.DebugFormat("no next packet, seeking to the position after the current packet, {0}",
@@ -248,7 +250,7 @@ namespace PacketDotNet.Connections
             TcpStream newStream = new TcpStream();
 
             // if we have no first packet then we can exit here
-            if(FirstPacket == null)
+            if (FirstPacket == null)
             {
 #if PERFORMANCE_CRITICAL_LOGGING
                 log.Debug("FirstPacket == null, returning empty TcpStream");
@@ -263,7 +265,7 @@ namespace PacketDotNet.Connections
 
             // special case for when we are at the end of the last packet
             // in which case we have nothing to do
-            if(currentPacket == null)
+            if (currentPacket == null)
             {
 #if PERFORMANCE_CRITICAL_LOGGING
                 log.Debug("currentPacket == null, returning empty newStream");
@@ -280,7 +282,7 @@ namespace PacketDotNet.Connections
 
             // copy the PacketInfo entries from the current stream to the new one
             LinkedListNode<PacketInfo> pos = currentPacket;
-            while(pos != null)
+            while (pos != null)
             {
 #if PERFORMANCE_CRITICAL_LOGGING
                 log.DebugFormat("adding packet of size {0}", pos.Value.length);
@@ -336,7 +338,7 @@ namespace PacketDotNet.Connections
         /// ToString overrride
         /// </summary>
         /// <returns>
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </returns>
         public override string ToString()
         {

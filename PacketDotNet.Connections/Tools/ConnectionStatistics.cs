@@ -7,10 +7,11 @@
 
 using System;
 using System.Collections.Generic;
+using PacketDotNet;
 using Serilog;
 using SharpPcap;
 
-namespace PacketDotNet.Connections.Tools
+namespace PacketDotNetConnections.Tools
 {
     /// <summary>
     /// Class that measures the time between the syn and syn-ack of a tcp connection
@@ -47,17 +48,17 @@ namespace PacketDotNet.Connections.Tools
             /// Override for ToString
             /// </summary>
             /// <returns>
-            /// A <see cref="System.String"/>
+            /// A <see cref="string"/>
             /// </returns>
-            public override string ToString ()
+            public override string ToString()
             {
                 TimeSpan? synAckTimeSpan = null;
-                if((synTime != null) && (synAckTime != null))
+                if (synTime != null && synAckTime != null)
                 {
                     synAckTimeSpan = synAckTime.Date - synTime.Date;
                 }
 
-                return string.Format ("[ConnectionTimes synTime '{0}', synAckTime '{1}', elapsed '{2}']",
+                return string.Format("[ConnectionTimes synTime '{0}', synAckTime '{1}', elapsed '{2}']",
                                       synTime, synAckTime, synAckTimeSpan);
             }
         }
@@ -142,14 +143,14 @@ namespace PacketDotNet.Connections.Tools
         /// <param name="tcp">
         /// A <see cref="TcpPacket"/>
         /// </param>
-        protected void HandleCOnPacketReceived (PosixTimeval timeval, TcpConnection connection, TcpFlow flow, TcpPacket tcp)
+        protected void HandleCOnPacketReceived(PosixTimeval timeval, TcpConnection connection, TcpFlow flow, TcpPacket tcp)
         {
             // look up the ConnectionStatistics
             var connectionStatistics = connectionDictionary[connection];
 
-            if(tcp.Synchronize && !tcp.Acknowledgment)
+            if (tcp.Synchronize && !tcp.Acknowledgment)
             {
-                if(connectionStatistics.clientFlow != null)
+                if (connectionStatistics.clientFlow != null)
                 {
                     OnMeasurementEvent(this, connection, EventTypes.DuplicateSynFound);
                     return;
@@ -157,9 +158,10 @@ namespace PacketDotNet.Connections.Tools
 
                 connectionStatistics.clientFlow = flow;
                 connectionStatistics.synTime = timeval;
-            } else if(tcp.Synchronize && tcp.Acknowledgment)
+            }
+            else if (tcp.Synchronize && tcp.Acknowledgment)
             {
-                if(connectionStatistics.serverFlow != null)
+                if (connectionStatistics.serverFlow != null)
                 {
                     OnMeasurementEvent(this, connection, EventTypes.DuplicateSynAckFound);
                     return;
@@ -171,14 +173,14 @@ namespace PacketDotNet.Connections.Tools
 
             // if we have both a syn and a syn-ack time then report that
             // we have a valid measurement
-            if((connectionStatistics.synTime != null) &&
-               (connectionStatistics.synAckTime != null))
+            if (connectionStatistics.synTime != null &&
+               connectionStatistics.synAckTime != null)
             {
                 OnMeasurementFound(this, connection, connectionStatistics);
 
                 // unregister the handler since we found our syn-syn/ack time
                 connection.OnPacketReceived -= HandleCOnPacketReceived;
             }
-       }
+        }
     }
 }

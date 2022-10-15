@@ -6,7 +6,7 @@
  */
 using System;
 
-namespace PacketDotNet.Connections
+namespace PacketDotNetConnections.Http
 {
     /// <summary>
     /// Base class for http exceptions
@@ -17,7 +17,7 @@ namespace PacketDotNet.Connections
         /// Constructor
         /// </summary>
         /// <param name="exception">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         public HttpException(string exception) : base(exception)
         {
@@ -27,12 +27,12 @@ namespace PacketDotNet.Connections
         /// Constructor with message
         /// </summary>
         /// <param name="exception">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         /// <param name="e">
-        /// A <see cref="System.Exception"/>
+        /// A <see cref="Exception"/>
         /// </param>
-        public HttpException(string exception, System.Exception e) : base(exception, e)
+        public HttpException(string exception, Exception e) : base(exception, e)
         {
         }
     }
@@ -46,7 +46,7 @@ namespace PacketDotNet.Connections
         /// Constructor
         /// </summary>
         /// <param name="exception">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         public HttpVersionParsingException(string exception) : base(exception)
         {
@@ -62,7 +62,7 @@ namespace PacketDotNet.Connections
         /// Constructor
         /// </summary>
         /// <param name="exception">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         public HttpStatusCodeParsingException(string exception) : base(exception)
         {
@@ -78,12 +78,12 @@ namespace PacketDotNet.Connections
         /// Constructor
         /// </summary>
         /// <param name="exception">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         /// <param name="e">
-        /// A <see cref="System.Exception"/>
+        /// A <see cref="Exception"/>
         /// </param>
-        public HttpChunkLengthParsingException(string exception, System.Exception e) :
+        public HttpChunkLengthParsingException(string exception, Exception e) :
             base(exception, e)
         {
         }
@@ -98,7 +98,7 @@ namespace PacketDotNet.Connections
         /// Constructor
         /// </summary>
         /// <param name="exception">
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </param>
         public HttpContentLengthParsingException(string exception) : base(exception)
         {

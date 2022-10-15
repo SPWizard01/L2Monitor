@@ -5,9 +5,10 @@
  * Commercial licensing available
  */
 using System.Net;
+using PacketDotNet;
 using SharpPcap;
 
-namespace PacketDotNet.Connections
+namespace PacketDotNetConnections
 {
     /// <summary>
     /// Tracks one endpoint of a tcp connection
@@ -69,9 +70,9 @@ namespace PacketDotNet.Connections
         /// A <see cref="IPAddress"/>
         /// </param>
         /// <param name="port">
-        /// A <see cref="System.Int32"/>
+        /// A <see cref="int"/>
         /// </param>
-        public TcpFlow (IPAddress address, int port)
+        public TcpFlow(IPAddress address, int port)
         {
             IsOpen = true;
             this.address = address;
@@ -98,14 +99,14 @@ namespace PacketDotNet.Connections
         /// A <see cref="TcpPacket"/>
         /// </param>
         /// <returns>
-        /// A <see cref="System.Boolean"/>
+        /// A <see cref="bool"/>
         /// </returns>
         public bool Matches(TcpPacket tcp)
         {
             var ip = tcp.ParentPacket as IPPacket;
 
-            if((tcp.SourcePort == port) &&
-               (ip.SourceAddress.Equals(address)))
+            if (tcp.SourcePort == port &&
+               ip.SourceAddress.Equals(address))
             {
                 return true;
             }
@@ -117,11 +118,11 @@ namespace PacketDotNet.Connections
         /// ToString override
         /// </summary>
         /// <returns>
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </returns>
-        public override string ToString ()
+        public override string ToString()
         {
-            return string.Format ("[TcpFlow address {0}, port {1}]",
+            return string.Format("[TcpFlow address {0}, port {1}]",
                                   address, port);
         }
 
@@ -129,9 +130,9 @@ namespace PacketDotNet.Connections
         /// Hash code
         /// </summary>
         /// <returns>
-        /// A <see cref="System.Int32"/>
+        /// A <see cref="int"/>
         /// </returns>
-        public override int GetHashCode ()
+        public override int GetHashCode()
         {
             int hashCode = address.GetHashCode() ^ port.GetHashCode();
             return hashCode;

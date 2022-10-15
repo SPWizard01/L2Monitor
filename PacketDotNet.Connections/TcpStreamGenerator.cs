@@ -7,11 +7,12 @@
 
 #define PERFORMANCE_CRITICAL_LOGGING
 
+using PacketDotNet;
 using Serilog;
 using System;
 using System.Collections.Generic;
 
-namespace PacketDotNet.Connections
+namespace PacketDotNetConnections
 {
     /// <summary>
     /// Attaches to a TcpFlow and reassembles the packets from this flow into
@@ -98,12 +99,12 @@ namespace PacketDotNet.Connections
 
         // first sequence number to look for at start of monitoring
         private bool waiting_for_start_seq; // if true we haven't yet set start_seq
-        private UInt32 start_seq;
+        private uint start_seq;
 
         /// <summary>
         /// Sequence number of the last in-order packet
         /// </summary>
-        public UInt32 LastContinuousSequence
+        public uint LastContinuousSequence
         {
             get;
             private set;
@@ -112,7 +113,7 @@ namespace PacketDotNet.Connections
         /// <summary>
         /// Last overall sequence number
         /// </summary>
-        public UInt32 last_overall_seq;
+        public uint last_overall_seq;
 
         private DateTime last_continuous_packet_received;
 
@@ -142,21 +143,21 @@ namespace PacketDotNet.Connections
         /// A <see cref="TimeSpan"/>
         /// </param>
         /// <param name="sizeLimitInBytes">
-        /// A <see cref="System.Nullable<System.Int64>"/>
+        /// A <see cref="Nullable<System.Int64>"/>
         /// </param>
         public TcpStreamGenerator(TcpFlow f,
                                   TimeSpan timeout,
                                   long? sizeLimitInBytes)
         {
-            this.flow = f;
-            this.flow.OnPacketReceived += HandleFlowOnPacketReceived;
+            flow = f;
+            flow.OnPacketReceived += HandleFlowOnPacketReceived;
             this.timeout = timeout;
             this.sizeLimitInBytes = sizeLimitInBytes;
 
-            packets = new LinkedList<PacketDotNet.TcpPacket>();
+            packets = new LinkedList<TcpPacket>();
 
             tcpStream = new TcpStream();
-            condition = TcpStreamGenerator.CallbackCondition.NextInSequence;
+            condition = CallbackCondition.NextInSequence;
             waiting_for_start_seq = true;
             LastContinuousSequence = 0;
             last_overall_seq = 0;
@@ -166,7 +167,7 @@ namespace PacketDotNet.Connections
             last_continuous_packet_received = DateTime.Now;
         }
 
-        void HandleFlowOnPacketReceived (SharpPcap.PosixTimeval timeval,
+        void HandleFlowOnPacketReceived(SharpPcap.PosixTimeval timeval,
                                          TcpPacket tcp,
                                          TcpConnection connection,
                                          TcpFlow flow)
@@ -177,7 +178,7 @@ namespace PacketDotNet.Connections
         /// <summary>
         /// Dispose
         /// </summary>
-        public void Dispose ()
+        public void Dispose()
         {
             flow.OnPacketReceived -= HandleFlowOnPacketReceived;
         }
@@ -194,17 +195,17 @@ namespace PacketDotNet.Connections
         /// returns true if the TcpStreamMonitor timed out
         /// </summary>
         /// <returns>
-        /// A <see cref="System.Boolean"/>
+        /// A <see cref="bool"/>
         /// </returns>
         public bool CheckForTimeout()
         {
             TimeSpan ts = DateTime.Now - last_continuous_packet_received;
-            if(ts.TotalSeconds > timeout.TotalSeconds)
+            if (ts.TotalSeconds > timeout.TotalSeconds)
             {
                 // Monitor has timed out, notify the user of the monitor via the callback
-                lock(this)
+                lock (this)
                 {
-                    condition = TcpStreamGenerator.CallbackCondition.ConnectionTimeout;
+                    condition = CallbackCondition.ConnectionTimeout;
                 }
 
                 return true;
@@ -226,7 +227,7 @@ namespace PacketDotNet.Connections
             // report the state via a callback
             var retval = OnCallback(this, condition);
 
-            if(retval == CallbackReturnValue.StopMonitoring)
+            if (retval == CallbackReturnValue.StopMonitoring)
             {
                 Dispose();
             }
@@ -234,16 +235,16 @@ namespace PacketDotNet.Connections
 
         //FIXME: we don't handle rolling sequence numbers properly in here
         // so after 4GB of packets we will have issues
-        private void InternalAddPacket(PacketDotNet.TcpPacket newPacket)
+        private void InternalAddPacket(TcpPacket newPacket)
         {
 #if PERFORMANCE_CRITICAL_LOGGING
             Log.Debug("");
 #endif
 
-            UInt32 new_packet_seq = newPacket.SequenceNumber;
+            uint new_packet_seq = newPacket.SequenceNumber;
 
             // if we haven't set the value of start_seq we should do so now
-            if(waiting_for_start_seq)
+            if (waiting_for_start_seq)
             {
 #if PERFORMANCE_CRITICAL_LOGGING
                 Log.Debug("waiting_for_start_seq");
@@ -261,7 +262,7 @@ namespace PacketDotNet.Connections
                             newPacket.SequenceNumber, start_seq);
 #endif
 
-            UInt32 new_packet_size = (UInt32)newPacket.PayloadData.Length;
+            uint new_packet_size = (uint)newPacket.PayloadData.Length;
 
 #if PERFORMANCE_CRITICAL_LOGGING
             Log.Debug("new_packet_seq: {0}, new_packet_size: {1}," +
@@ -272,7 +273,7 @@ namespace PacketDotNet.Connections
 
             // if the packet came before the last continuous sequence
             // number we've already seen the packet
-            if(new_packet_seq < LastContinuousSequence)
+            if (new_packet_seq < LastContinuousSequence)
             {
                 Log.Debug("new_packet_seq({0}) < lastContinuousSequence({1}), rejecting packet",
                                 new_packet_seq, LastContinuousSequence);
@@ -280,9 +281,9 @@ namespace PacketDotNet.Connections
             }
 
             // Verify that the packet within our allowed sequence range
-            if(SizeLimit.HasValue)
+            if (SizeLimit.HasValue)
             {
-                if ((new_packet_seq - start_seq) > SizeLimit)
+                if (new_packet_seq - start_seq > SizeLimit)
                 {
                     Log.Debug("OutOfRange, new_packet_seq({0}) > SizeLimit({1}), deleting packet",
                                     new_packet_seq, SizeLimit);
@@ -292,20 +293,20 @@ namespace PacketDotNet.Connections
             }
 
             bool packet_added = false;
-            LinkedListNode<PacketDotNet.TcpPacket> pNode;
+            LinkedListNode<TcpPacket> pNode;
 
             // try to place this packet in our pending packets list
-            if(packets.Count != 0)
+            if (packets.Count != 0)
             {
                 pNode = packets.Last;
                 do
                 {
-                    if(pNode == null)
+                    if (pNode == null)
                         break;
 
                     var p = pNode.Value;
-                    UInt32 current_packet_seq = (UInt32)p.SequenceNumber;
-                    UInt32 current_packet_size = (UInt32)p.PayloadData.Length;
+                    uint current_packet_seq = p.SequenceNumber;
+                    uint current_packet_size = (uint)p.PayloadData.Length;
 
 #if PERFORMANCE_CRITICAL_LOGGING
                     Log.Debug("current_packet_seq: {0}, current_packet_size: {1}",
@@ -313,7 +314,7 @@ namespace PacketDotNet.Connections
 #endif
 
                     // Does this packet belong after, but not *immediately* after current?
-                    if (new_packet_seq > (current_packet_seq + current_packet_size))
+                    if (new_packet_seq > current_packet_seq + current_packet_size)
                     {
 #if PERFORMANCE_CRITICAL_LOGGING
                         Log.Debug("OutOfSequence, adding packet");
@@ -321,7 +322,7 @@ namespace PacketDotNet.Connections
 
                         // Sanity check passed, insert into vector
                         condition = CallbackCondition.OutOfSequence;
-                        if (last_overall_seq < (new_packet_seq + new_packet_size))
+                        if (last_overall_seq < new_packet_seq + new_packet_size)
                         {
                             last_overall_seq = new_packet_seq + new_packet_size;
                         }
@@ -332,14 +333,14 @@ namespace PacketDotNet.Connections
                     }
 
                     // Does this packet fit exactly in sequence after current?
-                    if (new_packet_seq == (current_packet_seq + current_packet_size))
+                    if (new_packet_seq == current_packet_seq + current_packet_size)
                     {
 #if PERFORMANCE_CRITICAL_LOGGING
                         Log.Debug("packet fits into sequence, adding it");
 #endif
 
                         // Verify highest sequence number
-                        if ((new_packet_seq + new_packet_size) > last_overall_seq)
+                        if (new_packet_seq + new_packet_size > last_overall_seq)
                             last_overall_seq = new_packet_seq + new_packet_size;
 
                         packets.AddAfter(pNode, newPacket);
@@ -358,7 +359,8 @@ namespace PacketDotNet.Connections
 #endif
                             condition = CallbackCondition.DuplicateDropped; // Duplicate packet, drop it
                             return;
-                        } else
+                        }
+                        else
                         {
 #if PERFORMANCE_CRITICAL_LOGGING
                             Log.Debug("StreamError, packet would overlap previous packet and is different size");
@@ -370,7 +372,7 @@ namespace PacketDotNet.Connections
 
                     // move to the previous node
                     pNode = pNode.Previous;
-                } while(packets.Count != 0);
+                } while (packets.Count != 0);
             }
 
             // Packet did not fall between the existing packets or after all of them,
@@ -395,7 +397,7 @@ namespace PacketDotNet.Connections
             pNode = packets.First;
             do
             {
-                if(pNode == null)
+                if (pNode == null)
                 {
 #if PERFORMANCE_CRITICAL_LOGGING
                     Log.Debug("pNode == null");
@@ -405,11 +407,11 @@ namespace PacketDotNet.Connections
 
                 var p = pNode.Value;
                 var seq = p.SequenceNumber;
-                var size = (UInt32)p.PayloadData.Length;
+                var size = (uint)p.PayloadData.Length;
 
                 // if the size is zero and this is a syn packet then
                 // we need to adjust the size to be 1 according to the tcp protocol
-                if(newPacket.Synchronize)
+                if (newPacket.Synchronize)
                 {
                     size = 1;
                     LastContinuousSequence = seq;
@@ -422,12 +424,12 @@ namespace PacketDotNet.Connections
                 Log.Debug("seq: {0}, size: {1}", seq, size);
 #endif
 
-                if(seq == LastContinuousSequence)
+                if (seq == LastContinuousSequence)
                 {
-                    if(SizeLimit.HasValue)
+                    if (SizeLimit.HasValue)
                     {
                         // is this packet beyond our range?
-                        if((seq - start_seq) >= SizeLimit + 1)
+                        if (seq - start_seq >= SizeLimit + 1)
                         {
                             Log.Debug("dropping beyond range packet");
 
@@ -451,18 +453,19 @@ namespace PacketDotNet.Connections
 
                     // is this packet the next in line? if so update our
                     // last continuous sequence value
-                    if(seq == LastContinuousSequence)
+                    if (seq == LastContinuousSequence)
                     {
                         LastContinuousSequence += size;
                     }
 
                     // is the last continuous sequence after the current value?
                     // if our last overall sequence is behind, update it as well
-                    if(last_overall_seq < LastContinuousSequence)
+                    if (last_overall_seq < LastContinuousSequence)
                     {
                         last_overall_seq = LastContinuousSequence;
                     }
-                } else
+                }
+                else
                 {
 #if PERFORMANCE_CRITICAL_LOGGING
                     Log.Debug("seq {0}  != LastContinuousSequence() {1}",
@@ -472,7 +475,7 @@ namespace PacketDotNet.Connections
                 }
 
                 pNode = pNode.Next;
-            } while(packets.Count != 0);
+            } while (packets.Count != 0);
         }
 
         /// <summary>
@@ -487,9 +490,9 @@ namespace PacketDotNet.Connections
         /// ToString() override
         /// </summary>
         /// <returns>
-        /// A <see cref="System.String"/>
+        /// A <see cref="string"/>
         /// </returns>
-        public override string ToString ()
+        public override string ToString()
         {
             return string.Format("[TcpStreamGenerator: packets.Count: {0}, condition: {1}, tcpStream: {2}, waiting_for_start_seq: {3}, start_seq: {4}, LastContinuousSequence={5}, last_overall_seq: {6}, last_continuous_packet_received: {7}]",
                                  packets.Count,

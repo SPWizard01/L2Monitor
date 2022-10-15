@@ -1,11 +1,11 @@
 ﻿using PacketDotNet;
-using PacketDotNet.Connections;
-using L2Monitor.Game;
-using L2Monitor.Login;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using L2Monitor.GameServer;
+using PacketDotNetConnections;
+using L2Monitor.LoginServer;
 
 namespace L2Monitor.Common
 {

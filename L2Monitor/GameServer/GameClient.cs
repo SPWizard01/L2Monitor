@@ -7,6 +7,8 @@ using PacketDotNet;
 using PacketDotNet.Connections;
 using Serilog;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -21,6 +23,8 @@ namespace L2Monitor.GameServer
         private int MAX_FRAME_SIZE = 1460;
         private PacketDirection incompleteDirection;
         private byte[] incompletePacketData = Array.Empty<byte>();
+        private Queue<PacketInTransmit> incommingBuffer = new();
+        private Queue<PacketInTransmit> outgoingBuffer = new();
 
         public GameClient(TcpConnection connection)
         {
@@ -44,53 +48,108 @@ namespace L2Monitor.GameServer
                 return;
             }
             var data = (byte[])tcpPacket.PayloadData.Clone();
+            
             var direction = tcpPacket.SourcePort == Constants.GAME_PORT ? PacketDirection.ServerToClient : PacketDirection.ClientToServer;
-            //expect another packet
-            if (data.Length == MAX_FRAME_SIZE && direction == PacketDirection.ServerToClient)
-            {
-                incompletePacketData = incompletePacketData.Concat(data).ToArray();
-                return;
-            }
-            if (incompletePacketData.Length > 0 && direction == PacketDirection.ServerToClient)
-            {
-                data = incompletePacketData.Concat(data).ToArray();
-                incompletePacketData = Array.Empty<byte>();
-            }
+            Logger.Information("{dir} received {len} bytes", direction, data.Length);
+            var pckStream = new MemoryStream(data);
+            var buffer = direction == PacketDirection.ServerToClient ? incommingBuffer : outgoingBuffer;
 
-
-            if (gameCrypt != null)
+            //we have incomplete packets, should actualy be 1 if any
+            if (buffer.Any())
             {
-                //Logger.Information("Before decrypt {data}", BitConverter.ToString(data));
-                var offset = Constants.HEADER_SIZE;
-                gameCrypt.Decrypt(data, offset, data.Length, direction);
-                //gameCrypt.DecryptServerTest(data, direction);
-                //Logger.Information("After decrypt {data}", BitConverter.ToString(data));
-                var registeredSize = BitConverter.ToUInt16(data, 0);
-                if (registeredSize != data.Length)
+                var absentPck = buffer.Peek();
+                absentPck.AddData(pckStream);
+                if (absentPck.RemainingDataLength > 0 && pckStream.Position < pckStream.Length)
                 {
-                    Logger.Error("Size mismatch, Data: {datasize}; Read: {regsize}", data.Length, registeredSize);
+                    Logger.Error("This should not happen");
+                    Debugger.Break();
                 }
-                //maybe we should not shift if data size mismatch?
-                //should we wait for all the packets and then decrypt shift?
-                gameCrypt.shftKey(offset, data.Length, direction);
+
+                //await for next packet
+                if (absentPck.RemainingDataLength > 0)
+                {
+                    Logger.Information("Unfinished data1. Length: {len} Read: {read} Remaining: {remaining}", absentPck.PackeLength, pckStream.Length, absentPck.RemainingDataLength);
+                    return;
+                }
+
             }
 
+            var remainingDatLen = pckStream.Length - pckStream.Position;
 
-
-
-            var parsedPacket = ParsePacket(data, direction);
-            if (parsedPacket == null)
+            while (remainingDatLen > 0)
             {
-                return;
+                if (remainingDatLen < 2)
+                {
+                    Logger.Error("Remaining data length less than 2, cannot read packet size, this should not happen");
+                    Debugger.Break();
+                    return;
+                }
+                var newPck = new PacketInTransmit(pckStream);
+                buffer.Enqueue(newPck);
+                remainingDatLen = pckStream.Length - pckStream.Position;
+                if ((remainingDatLen > 0 && newPck.RemainingDataLength > 0) || remainingDatLen < 0)
+                {
+                    Logger.Error("This should not happen");
+                    Debugger.Break();
+                    return;
+                }
+                ////wait for next packet...
+                //if (newPck.RemainingDataLength > 0)
+                //{
+                //    //Debugger.Break();
+                //    return;
+                //}
             }
-
-            if (parsedPacket.GetType() == typeof(CryptInit) && gameCrypt == null)
+            //PacketInTransmit bfPck = null;
+            //process any full packets in the queue
+            while (buffer.Any())
             {
-                var pck = parsedPacket as CryptInit;
-                gameCrypt = new GameCrypt(pck);
-                return;
-            }
+                if(buffer.Peek().RemainingDataLength > 0 && buffer.Count() > 1)
+                {
+                    Logger.Error("This should not happen");
+                    Debugger.Break();
+                    return;
+                }
+                //last item in array awaiting data
+                if (buffer.Peek().RemainingDataLength > 0)
+                {
+                    var incPck = buffer.Peek();
+                    Logger.Information("Unfinished data2. Length: {len} Read: {read} Remaining: {remaining}", incPck.PackeLength, pckStream.Length, incPck.RemainingDataLength);
+                    break;
+                }
 
+                var bfPck = buffer.Dequeue();
+                if (gameCrypt != null)
+                {
+                    var offset = Constants.HEADER_SIZE;
+                    var dt = bfPck.PacketData;
+                    gameCrypt.Decrypt(dt, offset, dt.Length, direction);
+                    gameCrypt.shftKey(offset, dt.Length, direction);
+                }
+
+                var parsedPacket = ParsePacket(bfPck.PacketData, direction);
+                if (parsedPacket == null)
+                {
+                    continue;
+                }
+
+                if (parsedPacket.GetType() == typeof(CryptInit))
+                {
+                    if (gameCrypt != null)
+                    {
+                        Logger.Error("Received {name} packet although crypt already initialized", nameof(CryptInit));
+                        continue;
+                    }
+                    var pck = parsedPacket as CryptInit;
+                    gameCrypt = new GameCrypt(pck);
+                    continue; ;
+                }
+            }
+            Logger.Information("{direction} parsed, data in buffer {buflen}, stream position {pos}, stream len {len}", direction, buffer.Count, pckStream.Position, pckStream.Length);
+            //if(bfPck != null && gameCrypt != null)
+            //{
+            //    gameCrypt.shftKey(Constants.HEADER_SIZE, bfPck.PackeLength, direction);
+            //}
         }
 
         private IBasePacket ParsePacket(byte[] data, PacketDirection direction)
@@ -107,7 +166,7 @@ namespace L2Monitor.GameServer
             var cp = packetList.Where(p => p.OpCode.Match(test)).FirstOrDefault();
             if (cp == null)
             {
-                Logger.Warning($"{direction}: Unknown packet {test.ToInfoString()} Data:{BitConverter.ToString(data)}");
+                Logger.Warning("{direction}: Unknown {OpCode} Len:{Len} Data:{data}", direction, test.ToInfoString(), data.Length, BitConverter.ToString(data));
                 return null;
             }
             //Logger.Information($"{direction}: Found Packet {test.OpCode.ToInfoString()} Type:{cp.Packet} Data:{BitConverter.ToString(data)}");

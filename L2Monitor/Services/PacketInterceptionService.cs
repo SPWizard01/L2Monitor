@@ -73,7 +73,7 @@ namespace L2Monitor.Services
             //tcpdump filter to capture only TCP/IP packets
             //host 109.105.133.76 and
             Logger.LogInformation("Ruoff Login: 5.63.132.147");
-            Logger.LogInformation("Ruoff shyeed Game: 109.105.133.38");
+            Logger.LogInformation("Ruoff Elcardia Game: 109.105.133.38");
             Console.WriteLine("-- Enter login server IP i.e. 127.0.0.1: ");
             var lognIp = Console.ReadLine();
 
@@ -85,7 +85,7 @@ namespace L2Monitor.Services
             //52.44.183.4 us game naia
             //50.16.39.66 us game chronos
             //52.201.101.83 us login
-            string filter = $"(host {(string.IsNullOrEmpty(gameIp) ? "52.44.183.4" : gameIp)} or " +
+            string filter = $"(host {(string.IsNullOrEmpty(gameIp) ? "50.16.39.66" : gameIp)} or " +
                              $"host {(string.IsNullOrEmpty(lognIp) ? "52.201.101.83" : lognIp)}) and " +
                             $"(tcp src port 2106 or " +
                               "tcp dst port 2106 or " +

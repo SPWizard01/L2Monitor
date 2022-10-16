@@ -135,7 +135,7 @@ namespace L2Monitor.Common.Packets
         {
             var outData = new byte[length];
             var remainingData = _decryptedStream.Length - _decryptedStream.Position;
-            if (!_decryptedStream.CanRead || _decryptedStream.Position == _decryptedStream.Length || remainingData < length)
+            if (_decryptedStream.Position == _decryptedStream.Length || remainingData < length)
             {
                 baseLogger.Error("Attempting to read {readcount} bytes at {position}. Remaining data: {remdata}", length, _decryptedStream.Position, remainingData);
                 baseLogger.Error("Full packet {packet}", BitConverter.ToString(_decryptedStream.ToArray()));

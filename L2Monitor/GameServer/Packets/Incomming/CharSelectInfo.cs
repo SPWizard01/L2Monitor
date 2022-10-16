@@ -46,8 +46,8 @@ namespace L2Monitor.GameServer.Packets.Incomming
             {
                 Chars.Add(new CharacterInSelectScreen(this));
             }
+            WarnOnRemainingData();
             baseLogger.Information(JsonSerializer.Serialize(Chars));
-            var a = 1;
         }
 
 

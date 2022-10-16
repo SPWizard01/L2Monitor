@@ -208,9 +208,9 @@ namespace L2Monitor.GameServer.Models
             BanTimeLeft = stream.readUInt();
             LastAccess = stream.readUInt(); //DateTimeOffset.FromUnixTimeSeconds(LastAccess)
 
-            //hopefully contains data about next packet?
-            var a = stream.readBytes(6);
-            var b = 1;
+            //unknown
+            stream.readBytes(6);
+
             //Unknown1 = stream.readInt();
             //Unknown2 = stream.readInt();
             //Sex = stream.readInt();

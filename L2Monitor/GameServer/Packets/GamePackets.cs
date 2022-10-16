@@ -27,6 +27,9 @@ namespace L2Monitor.GameServer.Packets
             InListPacket.FromPacketId<CryptInit>(0x2E),
             InListPacket.FromPacketId<CharSelectInfo>(0x09),
             InListPacket.FromPacketId<Say2>(0x4A),
+            InListPacket.FromPacketId<ShortcutData>(0x45),
+            InListPacket.FromPacketId<ItemList>(0x11),
+            InListPacket.FromPacketId<SkillList>(0x5F),
             //InListPacket.FromPacketId<SocialAction>(0x27),
             //InListPacket.FromPacketId<CastleStateInfo>(0xFE, 0x12D),
             //

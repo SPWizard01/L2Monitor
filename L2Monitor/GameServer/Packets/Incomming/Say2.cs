@@ -27,7 +27,7 @@ namespace L2Monitor.GameServer.Packets.Incomming
             Unknown2 = readInt();
             Msg = readString();
             WarnOnRemainingData();
-            baseLogger.Information("Ping Request: {data}", JsonSerializer.Serialize(this));
+            baseLogger.Information("Chat: {data}", JsonSerializer.Serialize(this));
         }
 
 

@@ -10,7 +10,7 @@ namespace L2Monitor.LoginServer.Packets
         public static List<InListPacket> ClientToServerPackets { get; set; } = new List<InListPacket>
         {
             InListPacket.FromPacketId<RequestGGAuth>(0x07),
-            InListPacket.FromPacketId<RequestAuthLogin>(0x0B),
+            InListPacket.FromPacketId<RequestAuthLogin>(0x00),
             InListPacket.FromPacketId<RequestServerList>(0x05),
             InListPacket.FromPacketId<RequestServerLogin>(0x02),
         };

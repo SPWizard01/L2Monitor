@@ -58,9 +58,14 @@ namespace L2Monitor.LoginServer
             var direction = tcpPacket.SourcePort == Constants.LOGIN_PORT ? PacketDirection.ServerToClient : PacketDirection.ClientToServer;
             var data = (byte[])tcpPacket.PayloadData.Clone();
             var opcode = GetOpCodePacket(data, direction);
-            Crypt.Checksum(data);
+            var correct = Crypt.Checksum(data);
+            if (!correct)
+            {
+                logger.Warning("Checksum was not correct");
+            }
 
             var instance = GetInstance(opcode, direction, data);
+            var a = 1;
         }
 
         public void TryInit(TcpPacket tcpPacket)
@@ -105,7 +110,7 @@ namespace L2Monitor.LoginServer
             Crypt.Decrypt(data);
 
             var test = new OpCode(data);
-            if (test.Id1 == 0 && inited)
+            if (test.Id1 == 0 && inited && direction == PacketDirection.ServerToClient)
             {
                 logger.Error($"{direction}: Received Zero Code packet. Payload:{BitConverter.ToString(data)}");
             }

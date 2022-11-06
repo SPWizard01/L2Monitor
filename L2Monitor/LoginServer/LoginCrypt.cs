@@ -5,6 +5,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -160,19 +161,20 @@ namespace L2Monitor.LoginServer
 
         public bool Checksum(byte[] raw)
         {
-            uint chksum = 0;
-            int count = raw.Length - 4;
-            uint ecx = 1; //avoids ecs beeing == chksum if an error occured in the try
+            int chksum = 0;
+            int count = raw.Length - 8;
+            int ecx = 1; //avoids ecs beeing == chksum if an error occured in the try
             try
             {
-                var i = 0;
+                //header offset?
+                var i = 2;
                 for (; i < count; i += 4)
                 {
-                    ecx = BitConverter.ToUInt32(raw, i);
+                    ecx = BitConverter.ToInt32(raw, i);
                     chksum ^= ecx;
                 }
 
-                //ecx = BitConverter.ToUInt32(raw, i);
+                ecx = BitConverter.ToInt32(raw, i);
 
             }
             catch (Exception e)

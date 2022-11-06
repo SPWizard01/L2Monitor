@@ -147,7 +147,6 @@ namespace L2Monitor.Common.Packets
 
         public void WarnOnRemainingData()
         {
-            return;
             if (HasRemainingData())
             {
                 var data = GetRemainingData();

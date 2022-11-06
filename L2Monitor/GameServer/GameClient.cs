@@ -48,8 +48,10 @@ namespace L2Monitor.GameServer
                 return;
             }
             var data = (byte[])tcpPacket.PayloadData.Clone();
-            
+
+                        
             var direction = tcpPacket.SourcePort == Constants.GAME_PORT ? PacketDirection.ServerToClient : PacketDirection.ClientToServer;
+
             Logger.Information("{dir} received {len} bytes", direction, data.Length);
             var pckStream = new MemoryStream(data);
             var buffer = direction == PacketDirection.ServerToClient ? incommingBuffer : outgoingBuffer;
@@ -68,7 +70,11 @@ namespace L2Monitor.GameServer
                 //await for next packet
                 if (absentPck.RemainingDataLength > 0)
                 {
-                    Logger.Information("Unfinished data1. Length: {len} Read: {read} Remaining: {remaining}", absentPck.PackeLength, pckStream.Length, absentPck.RemainingDataLength);
+                    if (absentPck.PackeLength > data.Length && data.Length < MAX_FRAME_SIZE)
+                    {
+                        Debugger.Break();
+                    }
+                    Logger.Information("{direction} Unfinished data1. Length: {len} Read: {read} Remaining: {remaining}", direction, absentPck.PackeLength, pckStream.Length, absentPck.RemainingDataLength);
                     return;
                 }
 
@@ -85,6 +91,10 @@ namespace L2Monitor.GameServer
                     return;
                 }
                 var newPck = new PacketInTransmit(pckStream);
+                if(newPck.PackeLength > data.Length && data.Length < MAX_FRAME_SIZE)
+                {
+                    Debugger.Break();
+                }
                 buffer.Enqueue(newPck);
                 remainingDatLen = pckStream.Length - pckStream.Position;
                 if ((remainingDatLen > 0 && newPck.RemainingDataLength > 0) || remainingDatLen < 0)
@@ -114,7 +124,7 @@ namespace L2Monitor.GameServer
                 if (buffer.Peek().RemainingDataLength > 0)
                 {
                     var incPck = buffer.Peek();
-                    Logger.Information("Unfinished data2. Length: {len} Read: {read} Remaining: {remaining}", incPck.PackeLength, pckStream.Length, incPck.RemainingDataLength);
+                    Logger.Information("{direction} Unfinished data2. Length: {len} Read: {read} Remaining: {remaining}", direction, incPck.PackeLength, pckStream.Length, incPck.RemainingDataLength);
                     break;
                 }
 

@@ -1,7 +1,9 @@
 ﻿using L2Monitor.Classes;
 using L2Monitor.Common.Packets;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.Json;
 
 namespace L2Monitor.LoginServer.Packets.Incoming
 {
@@ -13,6 +15,7 @@ namespace L2Monitor.LoginServer.Packets.Incoming
         public ServerList(MemoryStream memoryStream) : base(memoryStream)
         {
             var memArr = memoryStream.ToArray();
+            baseLogger.Information(BitConverter.ToString(memArr));
             ServerCount = readByteAsShort();
             SelectedServer = readByteAsShort();
             for (var i = 0; i < ServerCount; i++)
@@ -20,20 +23,24 @@ namespace L2Monitor.LoginServer.Packets.Incoming
                 Servers.Add(new L2ServerInfo
                 {
                     ServerId = readByteAsShort(),
-                    ServerIP = new System.Net.IPAddress(readBytes(4)),
+                    ServerIP = new System.Net.IPAddress(readBytes(4)).ToString(),
                     ServerPort = readUInt(),
                     AgeRestricted = readBool(),
                     IsPvP = readBool(),
                     OnlineCount = readUInt16(),
                     MaxCount = readUInt16(),
                     IsOnline = readBool(),
-                    Unknown1 = readBool(),
-                    Unknown2 = readBool(),
-                    Unknown3 = readBool(),
-                    Unknown4 = readUInt16()
+                    ServerType = readByteAsShort(),
+                    HideBrackets = readBool(),
+                    ClientType = readUInt16(),
+                    Unknown1 = readByte()
                 });
             }
-            WarnOnRemainingData();
+            readUInt(); //unknown
+            //here the charlist for each server should go
+            //baseLogger.Information(JsonSerializer.Serialize(Servers));
+            //WarnOnRemainingData();
+            
         }
     }
 }

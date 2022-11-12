@@ -1,4 +1,5 @@
-﻿using L2Monitor.Common.Packets;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common.Packets;
 using Serilog;
 using System.IO;
 
@@ -6,14 +7,28 @@ namespace L2Monitor.LoginServer.Packets.Incoming
 {
     public class PlayOk : BasePacket
     {
-        public byte[] SessionKey1 { get; private set; }
-        public byte[] SessionKey2 { get; private set; }
+        public int SessionKey1 { get; private set; }
+        public int SessionKey2 { get; private set; }
         public ushort ServerId { get; private set; }
-        public PlayOk(MemoryStream memStream) : base(memStream)
+        public PlayOk()
         {
-            SessionKey1 = readBytes(4);
-            SessionKey2 = readBytes(4);
-            ServerId = readByteAsShort();
+
+        }
+        public PlayOk(MemoryStream memStream, PacketDirection direction) : base(memStream, true,direction)
+        {
+
+        }
+
+        public override IBasePacket Factory(byte[] raw, PacketDirection direction)
+        {
+            return new PlayOk(new MemoryStream(raw), direction);
+        }
+
+        public override void Run(IL2Client client)
+        {
+            SessionKey1 = ReadInt32();
+            SessionKey2 = ReadInt32();
+            ServerId = ReadByteAsShort();
 
             WarnOnRemainingData();
         }

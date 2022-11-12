@@ -170,46 +170,46 @@ namespace L2Monitor.GameServer.Models
             //ArmorEnchantLevels = new Dictionary<PaperDoll, short>();
 
 
-            CharName = stream.readString();
-            CharId = stream.readInt();
-            LoginName = stream.readString();
-            SessionId = stream.readUInt();
+            CharName = stream.ReadString();
+            CharId = stream.ReadInt32();
+            LoginName = stream.ReadString();
+            SessionId = stream.ReadUInt32();
             //unknown shit
             //might contain sex
-            stream.readBytes(16);
-            Race = stream.readUInt();
-            Class = stream.readUInt();
-            X = stream.readInt();
-            Y = stream.readInt();
-            Z = stream.readInt();
-            CurrentHp = stream.readDouble();
-            CurrentMp = stream.readDouble();
-            CurrentSp = stream.readULong();
-            CurrentXp = stream.readULong();
-            CurrentXpPercent = stream.readDouble()*100;
-            Level = stream.readUInt();
+            stream.ReadBytes(16);
+            Race = stream.ReadUInt32();
+            Class = stream.ReadUInt32();
+            X = stream.ReadInt32();
+            Y = stream.ReadInt32();
+            Z = stream.ReadInt32();
+            CurrentHp = stream.ReadDouble();
+            CurrentMp = stream.ReadDouble();
+            CurrentSp = stream.ReadUInt64();
+            CurrentXp = stream.ReadUInt64();
+            CurrentXpPercent = stream.ReadDouble()*100;
+            Level = stream.ReadUInt32();
             //unknown shit
-            stream.readBytes(346);
-            MaxHP = stream.readDouble();
-            MaxMP = stream.readDouble();
-            DeleteTimer = stream.readUInt();
-            ClassId = stream.readUInt();
-            IsActive = stream.readBool();
+            stream.ReadBytes(346);
+            MaxHP = stream.ReadDouble();
+            MaxMP = stream.ReadDouble();
+            DeleteTimer = stream.ReadUInt32();
+            ClassId = stream.ReadUInt32();
+            IsActive = stream.ReadBoolean();
 
             //another unknown shit
-            stream.readBytes(48);
-            VitalityPoints = stream.readUInt();
-            VitalityPercent = stream.readUInt();
-            RemainingVitalityUses = stream.readUInt();
-            CharActive = stream.readUInt();
-            IsNoble = stream.readBool();
-            IsHero = stream.readBool();
-            HairAccessoryEnabled = stream.readBool();
-            BanTimeLeft = stream.readUInt();
-            LastAccess = stream.readUInt(); //DateTimeOffset.FromUnixTimeSeconds(LastAccess)
+            stream.ReadBytes(48);
+            VitalityPoints = stream.ReadUInt32();
+            VitalityPercent = stream.ReadUInt32();
+            RemainingVitalityUses = stream.ReadUInt32();
+            CharActive = stream.ReadUInt32();
+            IsNoble = stream.ReadBoolean();
+            IsHero = stream.ReadBoolean();
+            HairAccessoryEnabled = stream.ReadBoolean();
+            BanTimeLeft = stream.ReadUInt32();
+            LastAccess = stream.ReadUInt32(); //DateTimeOffset.FromUnixTimeSeconds(LastAccess)
 
             //unknown
-            stream.readBytes(6);
+            stream.ReadBytes(6);
 
             //Unknown1 = stream.readInt();
             //Unknown2 = stream.readInt();

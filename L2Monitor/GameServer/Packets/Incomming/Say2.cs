@@ -1,4 +1,5 @@
-﻿using L2Monitor.Common.Packets;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common.Packets;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -18,20 +19,31 @@ namespace L2Monitor.GameServer.Packets.Incomming
         public string Actor { get; private set; }
         public int Unknown2 { get; private set; }
         public string Msg { get; private set; }
-        public Say2(MemoryStream memStream) : base(memStream)
+        public Say2()
         {
-            RequestId = readUInt();
-            Type = readUInt16();
-            Unknown1 = readUInt16();
-            Actor = readString();
-            Unknown2 = readInt();
-            Msg = readString();
+
+        }
+
+        public Say2(MemoryStream memStream, PacketDirection direction) : base(memStream, false, direction)
+        {
+
+        }
+
+        public override IBasePacket Factory(byte[] raw, PacketDirection direction)
+        {
+            return new Say2(new MemoryStream(raw), direction);
+        }
+
+        public override void Run(IL2Client client)
+        {
+            RequestId = ReadUInt32();
+            Type = ReadUInt16();
+            Unknown1 = ReadUInt16();
+            Actor = ReadString();
+            Unknown2 = ReadInt32();
+            Msg = ReadString();
             WarnOnRemainingData();
             baseLogger.Information("Chat: {data}", JsonSerializer.Serialize(this));
         }
-
-
-
-
     }
 }

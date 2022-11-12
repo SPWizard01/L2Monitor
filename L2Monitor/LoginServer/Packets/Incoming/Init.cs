@@ -1,4 +1,5 @@
-﻿using L2Monitor.Common.Packets;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common.Packets;
 using L2Monitor.Util;
 using Serilog;
 using System;
@@ -25,38 +26,56 @@ namespace L2Monitor.LoginServer.Packets.Incoming
         public int Unknown7 { get; private set; }
         public uint Unknown8 { get; private set; }
 
-        public Init(MemoryStream raw) : base(raw)
+        public Init()
         {
-            SessionId = readUInt();
 
-            ProtocolVersion = readUInt();
+        }
+
+        public Init(MemoryStream raw, PacketDirection direction) : base(raw, true, direction)
+        {
+            
+        }
+
+        public override IBasePacket Factory(byte[] raw, PacketDirection direction)
+        {
+            return new Init(new MemoryStream(raw), direction);
+        }
+
+        public override void Run(IL2Client client)
+        {
+            SessionId = ReadUInt32();
+
+            ProtocolVersion = ReadUInt32();
             if (ProtocolVersion != 50721)
             {
                 LogNewDataWarning(nameof(ProtocolVersion), ProtocolVersion);
             }
 
-            RSAPublicKey = readBytes(128);
+            RSAPublicKey = ReadBytes(128);
 
             //GG related, 0 in new client
-            Unknown2 = readInt();
-            Unknown3 = readInt();
-            Unknown4 = readInt();
-            Unknown5 = readInt();
+            Unknown2 = ReadInt32();
+            Unknown3 = ReadInt32();
+            Unknown4 = ReadInt32();
+            Unknown5 = ReadInt32();
 
-            BlowFishKey = readBytes(16);
-            Unknown6 = readInt();
+            BlowFishKey = ReadBytes(16);
+            Unknown6 = ReadInt32();
             if (Unknown6 != 133123)
             {
                 LogNewDataWarning(nameof(Unknown6), Unknown6);
             }
-            UnknownBytes = readBytes(11);
-            Unknown7 = readInt();
+            UnknownBytes = ReadBytes(11);
+            Unknown7 = ReadInt32();
             if (Unknown7 != 0)
             {
                 LogNewDataWarning(nameof(Unknown7), Unknown7);
             }
-            Unknown8 = readUInt();
+            Unknown8 = ReadUInt32();
             WarnOnRemainingData();
+
+            client.Crypt?.SetKey(BlowFishKey);
+            client.State = ConnectionState.LOGIN_KEY_INITED;
             baseLogger.Information(JsonSerializer.Serialize(this));
         }
 

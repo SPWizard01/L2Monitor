@@ -1,4 +1,5 @@
-﻿using L2Monitor.Common.Packets;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common.Packets;
 using System.IO;
 using System.Text.Json;
 
@@ -9,15 +10,28 @@ namespace L2Monitor.GameServer.Packets.Outgoing
         public uint RequestId { get; private set; }
         public uint SomeNumber { get; private set; }
         public uint Unknown { get; private set; }
-        public PingReply(MemoryStream raw) : base(raw)
+        public PingReply()
         {
-            RequestId = readUInt();
-            SomeNumber = readUInt();
-            Unknown = readUInt();
-            WarnOnRemainingData();
-            baseLogger.Information("Ping Reply: {data}", JsonSerializer.Serialize(this));
+
+        }
+        public PingReply(MemoryStream raw, PacketDirection direction) : base(raw, false, direction)
+        {
+
+        }
+        public override IBasePacket Factory(byte[] raw, PacketDirection direction)
+        {
+            return new PingReply(new MemoryStream(raw), direction);
         }
 
+        public override void Run(IL2Client client)
+        {
+            RequestId = ReadUInt32();
+            SomeNumber = ReadUInt32();
+            Unknown = ReadUInt32();
+            WarnOnRemainingData();
+            baseLogger.Information("Ping Reply: {data}", JsonSerializer.Serialize(this));
+
+        }
 
     }
 }

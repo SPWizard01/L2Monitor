@@ -1,4 +1,5 @@
-﻿using System;
+﻿using L2Monitor.Util;
+using System;
 using System.IO;
 
 namespace L2Monitor.Common.Packets
@@ -20,14 +21,19 @@ namespace L2Monitor.Common.Packets
         }
 
 
-        public OpCode(byte[] raw)
+        public OpCode(byte[] raw, bool isLogin, PacketDirection direction)
         {
             Id1 = raw[2];
             Id2 = 0;
-            if (Id1 == 0xFE)
+            if(!isLogin)
             {
-                Id2 = BitConverter.ToUInt16(raw, 3);
+                var maxPck = direction == PacketDirection.ServerToClient ? Constants.MAX_INCOMMING : Constants.MAX_OUTGOING;
+                if (Id1 == maxPck)
+                {
+                    Id2 = BitConverter.ToUInt16(raw, 3);
+                }
             }
+
         }
 
         public bool Match(byte byteOpCode)

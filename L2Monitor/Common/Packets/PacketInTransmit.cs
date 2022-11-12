@@ -12,13 +12,15 @@ namespace L2Monitor.Common.Packets
     public class PacketInTransmit
     {
         public byte[] PacketData { get; private set; }
-        public ushort PackeLength { get; private set; }
+        public ushort PacketLength { get; private set; }
         public ushort RemainingDataLength { get; private set; }
+        private readonly ILogger logger;
         public PacketInTransmit(byte[] packetData, ushort packetLength)
         {
             PacketData = packetData;
-            PackeLength = packetLength;
+            PacketLength = packetLength;
             RemainingDataLength = (ushort)(packetData.Length - packetLength);
+            logger = Log.ForContext(GetType());
         }
 
         public PacketInTransmit(MemoryStream mem)
@@ -29,13 +31,13 @@ namespace L2Monitor.Common.Packets
             //mem lenght can be more thant packetLength because it can contain multiple packets so we only read the amount we need;
             var remainingDataAmount = mem.Length - mem.Position;
             var readAmount = remainingDataAmount >= packetLength ? packetLength : remainingDataAmount;
-            Log.Information("Read packet length {packetLength} read amount {readAmount}", packetLength, readAmount);
+            //logger.Information("Read packet length {packetLength} read amount {readAmount}", packetLength, readAmount);
 
             //on the other hand we could initialize array with packet length
             //and then calc offsed during AddData
             PacketData = new byte[packetLength];
             mem.Read(PacketData, 0, (int)readAmount);
-            PackeLength = packetLength;
+            PacketLength = packetLength;
             RemainingDataLength = (ushort)(PacketData.Length - readAmount);
         }
 
@@ -45,7 +47,7 @@ namespace L2Monitor.Common.Packets
             var readData = new byte[bufferLen];
             mem.Read(readData, 0, (int)bufferLen);
             PacketData = PacketData.Concat(readData).ToArray();
-            RemainingDataLength = (ushort)(PackeLength - PacketData.Length);
+            RemainingDataLength = (ushort)(PacketLength - PacketData.Length);
             if (RemainingDataLength < 0)
             {
                 throw new InvalidDataException("Remaining data must be greater or equals to 0");
@@ -55,7 +57,7 @@ namespace L2Monitor.Common.Packets
         public void AddData(MemoryStream mem)
         {
             var bufferLen = mem.Length >= RemainingDataLength ? RemainingDataLength : mem.Length;
-            var offset = PackeLength - RemainingDataLength;
+            var offset = PacketLength - RemainingDataLength;
             mem.Read(PacketData, offset, (int)bufferLen);
             RemainingDataLength -= (ushort)bufferLen;
             if (RemainingDataLength < 0)

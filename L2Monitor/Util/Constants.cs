@@ -10,5 +10,7 @@ namespace L2Monitor.Util
         public const int OP_CODE_SIZE = 1;
         public const int LOGIN_PORT = 2106;
         public const int GAME_PORT = 7777;
+        public const byte MAX_INCOMMING = 0xFE;
+        public const byte MAX_OUTGOING = 0xD0;
     }
 }

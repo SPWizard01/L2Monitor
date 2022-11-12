@@ -12,35 +12,47 @@ namespace L2Monitor.LoginServer.Packets.Incoming
         public ushort ServerCount { get; set; }
         public ushort SelectedServer { get; set; }
         public List<L2ServerInfo> Servers { get; set; } = new();
-        public ServerList(MemoryStream memoryStream) : base(memoryStream)
+        public ServerList()
         {
-            var memArr = memoryStream.ToArray();
-            baseLogger.Information(BitConverter.ToString(memArr));
-            ServerCount = readByteAsShort();
-            SelectedServer = readByteAsShort();
+
+        }
+        public ServerList(MemoryStream memoryStream, PacketDirection direction) : base(memoryStream, true, direction)
+        {
+
+            
+        }
+
+        public override IBasePacket Factory(byte[] raw, PacketDirection direction)
+        {
+            return new ServerList(new MemoryStream(raw), direction);
+        }
+
+        public override void Run(IL2Client client)
+        {
+            ServerCount = ReadByteAsShort();
+            SelectedServer = ReadByteAsShort();
             for (var i = 0; i < ServerCount; i++)
             {
                 Servers.Add(new L2ServerInfo
                 {
-                    ServerId = readByteAsShort(),
-                    ServerIP = new System.Net.IPAddress(readBytes(4)).ToString(),
-                    ServerPort = readUInt(),
-                    AgeRestricted = readBool(),
-                    IsPvP = readBool(),
-                    OnlineCount = readUInt16(),
-                    MaxCount = readUInt16(),
-                    IsOnline = readBool(),
-                    ServerType = readByteAsShort(),
-                    HideBrackets = readBool(),
-                    ClientType = readUInt16(),
-                    Unknown1 = readByte()
+                    ServerId = ReadByteAsShort(),
+                    ServerIP = new System.Net.IPAddress(ReadBytes(4)).ToString(),
+                    ServerPort = ReadUInt32(),
+                    AgeRestricted = ReadBoolean(),
+                    IsPvP = ReadBoolean(),
+                    OnlineCount = ReadUInt16(),
+                    MaxCount = ReadUInt16(),
+                    IsOnline = ReadBoolean(),
+                    ServerType = ReadByteAsShort(),
+                    HideBrackets = ReadBoolean(),
+                    ClientType = ReadUInt16(),
+                    Unknown1 = ReadByte()
                 });
             }
-            readUInt(); //unknown
+            ReadUInt32(); //unknown
             //here the charlist for each server should go
             //baseLogger.Information(JsonSerializer.Serialize(Servers));
             //WarnOnRemainingData();
-            
         }
     }
 }

@@ -1,5 +1,7 @@
-﻿using L2Monitor.Common;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common;
 using L2Monitor.Common.Packets;
+using L2Monitor.GameServer.Packets;
 using L2Monitor.LoginServer.Packets;
 using L2Monitor.LoginServer.Packets.Incoming;
 using L2Monitor.Util;
@@ -12,11 +14,13 @@ using System.Linq;
 
 namespace L2Monitor.LoginServer
 {
-    public class LoginClient
+    public class LoginClient : IL2Client
     {
 
         public TcpConnection TcpConnection { get; set; }
-        public LoginCrypt Crypt;
+        public ConnectionState State { get; set; } = ConnectionState.CONNECTED;
+
+        public ICrypt? Crypt { get; private set; }
         private ILogger logger;
         private bool inited = false;
 
@@ -57,7 +61,7 @@ namespace L2Monitor.LoginServer
             }
             var direction = tcpPacket.SourcePort == Constants.LOGIN_PORT ? PacketDirection.ServerToClient : PacketDirection.ClientToServer;
             var data = (byte[])tcpPacket.PayloadData.Clone();
-            var opcode = GetOpCodePacket(data, direction);
+            var opcode = DecryptAndGetOpCode(data, direction);
             var correct = Crypt.Checksum(data);
             if (!correct)
             {
@@ -65,7 +69,10 @@ namespace L2Monitor.LoginServer
             }
 
             var instance = GetInstance(opcode, direction, data);
-            var a = 1;
+            if(instance != null)
+            {
+                instance.Run(this);
+            }
         }
 
         public void TryInit(TcpPacket tcpPacket)
@@ -78,7 +85,7 @@ namespace L2Monitor.LoginServer
             {
                 var data = (byte[])tcpPacket.PayloadData.Clone();
                 var direction = PacketDirection.ServerToClient;
-                var test = GetOpCodePacket(data, direction);
+                var test = DecryptAndGetOpCode(data, direction);
                 //not init packet.
                 if (!test.Match(LoginOpCodes.Init) && !inited)
                 {
@@ -86,15 +93,15 @@ namespace L2Monitor.LoginServer
                     return;
                 }
 
-                //if it is init packet unxor it.
-                Crypt.DecXORPass(data);
-                //Crypt.javaDecXORPass(data);
+                var instance = GetInstance(test, direction, data);
+                if (instance is Init)
+                {
+                    inited = true;
+                }
 
-                var instance = GetInstance(test, direction, data) as Init;
                 if (instance != null)
                 {
-                    Crypt.SetKey(instance.BlowFishKey);
-                    inited = true;
+                    instance.Run(this);
                 }
 
             }
@@ -105,11 +112,11 @@ namespace L2Monitor.LoginServer
 
         }
 
-        private OpCode GetOpCodePacket(byte[] data, PacketDirection direction)
+        private OpCode DecryptAndGetOpCode(byte[] data, PacketDirection direction)
         {
-            Crypt.Decrypt(data);
+            Crypt.Decrypt(data, direction);
 
-            var test = new OpCode(data);
+            var test = new OpCode(data, true, direction);
             if (test.Id1 == 0 && inited && direction == PacketDirection.ServerToClient)
             {
                 logger.Error($"{direction}: Received Zero Code packet. Payload:{BitConverter.ToString(data)}");
@@ -119,17 +126,27 @@ namespace L2Monitor.LoginServer
 
         private IBasePacket GetInstance(OpCode test, PacketDirection direction, byte[] data)
         {
-            var packetList = direction == PacketDirection.ServerToClient ? LoginPackets.ServerToClientPackets : LoginPackets.ClientToServerPackets;
-            var cp = packetList.Where(p => p.OpCode.Match(test)).FirstOrDefault();
+            var packetList = direction == PacketDirection.ServerToClient ? LoginPacketsFromServer.All :
+                                                               LoginPacketsFromClient.All;
+
+            var cp = packetList.Where(p => p.OpCode.Match(test) && p.States.Contains(State)).FirstOrDefault();
             if (cp == null)
             {
-                logger.Warning($"{direction}: Unknown packet {test.ToInfoString()} Data:{BitConverter.ToString(data)}");
+                var closest = packetList.Where(p => p.OpCode.Match(test)).Select(p => p.Name);
+                if (closest.Any())
+                {
+                    logger.Error("Packet {1} was not found. Closest matches: {1}", test.ToInfoString(), string.Join(';', closest));
+                    return null;
+                }
+                logger.Error("{direction}: Unknown Packet {OpCode} Len:{Len} Data:{data}", direction, test.ToInfoString(), data.Length, BitConverter.ToString(data));
                 return null;
             }
-
-            //logger.Information($"{direction}: Found Packet {test.OpCode.ToInfoString()} Type:{cp.Packet}");
-            var packetInstane = Activator.CreateInstance(cp.Packet, new MemoryStream(data)) as IBasePacket;
-            return packetInstane;
+            if (cp.Packet == null)
+            {
+                logger.Warning("{0} has been registered but no handler is present. Data: {1}", cp.Name, BitConverter.ToString(data));
+                return null;
+            }
+            return cp.Packet?.Factory(data, direction);
         }
 
     }

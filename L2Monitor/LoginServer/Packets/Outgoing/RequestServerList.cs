@@ -1,4 +1,5 @@
-﻿using L2Monitor.Common.Packets;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common.Packets;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -11,13 +12,27 @@ namespace L2Monitor.LoginServer.Packets.Outgoing
 {
     public class RequestServerList : BasePacket
     {
-        public byte[] SessionKey1 { get; private set; }
-        public byte[] SessionKey2 { get; private set; }
+        public int SessionKey1 { get; private set; }
+        public int SessionKey2 { get; private set; }
 
-        public RequestServerList(MemoryStream memoryStream) : base(memoryStream)
+        public RequestServerList()
         {
-            SessionKey1 = readBytes(4);
-            SessionKey2 = readBytes(4);
+
+        }
+        public RequestServerList(MemoryStream memoryStream, PacketDirection direction) : base(memoryStream, true, direction)
+        {
+
+        }
+
+        public override IBasePacket Factory(byte[] raw, PacketDirection direction)
+        {
+            return new RequestServerList(new MemoryStream(raw), direction);
+        }
+
+        public override void Run(IL2Client client)
+        {
+            SessionKey1 = ReadInt32();
+            SessionKey2 = ReadInt32();
 
             WarnOnRemainingData();
         }

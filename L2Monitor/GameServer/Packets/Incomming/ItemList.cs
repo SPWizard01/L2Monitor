@@ -1,4 +1,5 @@
-﻿using L2Monitor.Common.Packets;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common.Packets;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -15,21 +16,27 @@ namespace L2Monitor.GameServer.Packets.Incomming
         public byte SendType { get; private set; }
         public uint ItemCountUnknown { get; private set; }
         public uint ItemCount { get; private set; }
-        public ItemList(MemoryStream memStream) : base(memStream)
+        public ItemList(MemoryStream memStream, PacketDirection direction) : base(memStream, false, direction)
         {
-            SendType = readByte();
-            ItemCountUnknown = readUInt();
-            ItemCount = readUInt();
-            if(SendType == 2)
+
+        }
+
+        public override IBasePacket Factory(byte[] raw, PacketDirection direction)
+        {
+            return new ItemList(new MemoryStream(raw), direction);
+        }
+
+        public override void Run(IL2Client client)
+        {
+            SendType = ReadByte();
+            ItemCountUnknown = ReadUInt32();
+            ItemCount = ReadUInt32();
+            if (SendType == 2)
             {
                 //we can read item count here....
             }
             WarnOnRemainingData();
             baseLogger.Information("{data}", JsonSerializer.Serialize(this));
         }
-
-
-
-
     }
 }

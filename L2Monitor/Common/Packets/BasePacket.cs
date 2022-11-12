@@ -1,148 +1,102 @@
-﻿using System;
+﻿using L2Monitor.Classes;
+using L2Monitor.Util;
+using Serilog;
+using System;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
-using Serilog;
 
 namespace L2Monitor.Common.Packets
 {
-    public abstract class BasePacket : IBasePacket
+    public abstract class BasePacket : BinaryReader, IBasePacket
     {
-        private readonly MemoryStream _decryptedStream;
         internal readonly ILogger baseLogger;
+
         [JsonIgnore]
         public ushort PacketSize { get; set; }
+        
         [JsonIgnore]
         public OpCode OpCode { get; set; }
-        public BasePacket(MemoryStream memStream)
+        
+        [JsonIgnore]
+        public override Stream BaseStream { get => base.BaseStream; }
+        
+        public BasePacket() : base(new MemoryStream())
         {
-            _decryptedStream = memStream;
-            baseLogger = Log.ForContext(GetType());
-            PacketSize = readUInt16();
-            OpCode = new OpCode(memStream.ToArray());
-            //skip opcode
-            readByte();
-            if (OpCode.Id2 > 0)
-            {
-                //this is extended packet skip another 2 bytes
-                readUInt16();
-            }
+
         }
+
+        public BasePacket(MemoryStream stream, bool isLogin, PacketDirection direction) : base(stream, Encoding.Unicode)
+        {
+            baseLogger = Log.ForContext(GetType());
+            PacketSize = ReadUInt16();
+            var id1 = ReadByte();
+            var id2 = (ushort)0;
+            if (!isLogin)
+            {
+                var maxSize = direction == PacketDirection.ServerToClient ? Constants.MAX_INCOMMING : Constants.MAX_OUTGOING;
+                if (id1 >= maxSize)
+                {
+                    id2 = ReadUInt16();
+                }
+            }
+
+            OpCode = new OpCode(id1, id2);
+        }
+
+
+        public abstract IBasePacket Factory(byte[] raw, PacketDirection direction);
+
+        public abstract void Run(IL2Client client);
+
+
         internal void LogNewDataWarning(string dataName, object data)
         {
             baseLogger.Warning("NEW DATA INSIDE PACKET {packetname}: {data}", dataName, data);
         }
         public bool HasRemainingData()
         {
-            return _decryptedStream.Position != _decryptedStream.Length;
+            return BaseStream.Position != BaseStream.Length;
         }
 
         public byte[] GetRemainingData()
         {
-            var len = (int)_decryptedStream.Length - (int)_decryptedStream.Position;
-            return readBytes(len);
+            return ReadBytes((int)(BaseStream.Length - BaseStream.Position));
         }
 
-        public byte readByte()
+
+
+        public ushort ReadByteAsShort()
         {
-            var result = Convert.ToByte(readBytes(1)[0]);
-            return result;
+            return Convert.ToUInt16(ReadByte());
         }
 
-        public ushort readByteAsShort()
-        {
-            return Convert.ToUInt16(readBytes(1)[0]);
-        }
-
-        public bool readBool()
-        {
-            var result = BitConverter.ToBoolean(readBytes(1), 0);
-            return result;
-        }
-
-        public int readInt()
-        {
-            var result = BitConverter.ToInt32(readBytes(4), 0);
-            return result;
-        }
-
-        public uint readUInt()
-        {
-            var result = BitConverter.ToUInt32(readBytes(4), 0);
-            return result;
-        }
-
-        public double readDouble()
-        {
-            //var result = BitConverter.Int64BitsToDouble(BitConverter.ToInt64(readBytes(8), 0));
-            var result = BitConverter.ToDouble(readBytes(8), 0);
-            return result;
-        }
-
-        public float readFloat()
-        {
-            var result = BitConverter.ToSingle(readBytes(4), 0);
-            return result;
-        }
-
-        public long readLong()
-        {
-            var result = BitConverter.ToInt64(readBytes(8), 0);
-            return result;
-        }
-        public ulong readULong()
-        {
-            var result = BitConverter.ToUInt64(readBytes(8), 0);
-            return result;
-        }
-
-        public ushort readUInt16()
-        {
-
-            var result = BitConverter.ToUInt16(readBytes(2));
-            return result;
-        }
-
-        public short readInt16()
-        {
-
-            var result = BitConverter.ToInt16(readBytes(2));
-            return result;
-        }
-
-        public char readChar()
-        {
-            var character = BitConverter.ToChar(readBytes(2));
-            return character;
-        }
-
-
-        public string readString()
+        public override string ReadString()
         {
             StringBuilder sb = new StringBuilder();
             char chr;
 
-            while ((chr = readChar()) != char.MinValue)
+            while ((chr = ReadChar()) != char.MinValue)
             {
                 sb.Append(chr);
             }
             return sb.ToString();
         }
 
-
-        public byte[] readBytes(int length)
+        public byte[] ToArray()
         {
-            var outData = new byte[length];
-            var remainingData = _decryptedStream.Length - _decryptedStream.Position;
-            if (_decryptedStream.Position == _decryptedStream.Length || remainingData < length)
+            return ((MemoryStream)BaseStream).ToArray();
+        }
+
+        public override byte[] ReadBytes(int count)
+        {
+            var readBytes = base.ReadBytes(count);
+            if (readBytes.Length < count)
             {
-                baseLogger.Error("Attempting to read {readcount} bytes at {position}. Remaining data: {remdata}", length, _decryptedStream.Position, remainingData);
-                baseLogger.Error("Full packet {packet}", BitConverter.ToString(_decryptedStream.ToArray()));
-                return outData;
+                baseLogger.Error("Attempting to read {count} resulted in {readLen} bytes read. End of stream was reached.", count, readBytes.Length);
+                baseLogger.Error("Full packet {packet}", BitConverter.ToString(ToArray()));
             }
-            _decryptedStream.Read(outData, 0, length);
-            return outData;
+            return readBytes;
         }
 
         public void WarnOnRemainingData()

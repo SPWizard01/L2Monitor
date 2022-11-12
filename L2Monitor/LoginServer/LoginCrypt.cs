@@ -1,4 +1,6 @@
-﻿using L2Monitor.Common;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common;
+using L2Monitor.Common.Packets;
 using L2Monitor.Util;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -13,11 +15,37 @@ using System.Threading.Tasks;
 
 namespace L2Monitor.LoginServer
 {
-    public class LoginCrypt : L2Crypt
+    public class LoginCrypt : ICrypt
     {
+        private static readonly byte[] STATIC_BLOWFISH_KEY = {
+             0x6b,
+             0x60,
+             0xcb,
+             0x5b,
+             0x82,
+             0xce,
+             0x90,
+             0xb1,
+             0xcc,
+             0x2b,
+             0x6c,
+             0x55,
+             0x6c,
+             0x6c,
+             0x6c,
+             0x6c
+        };
+        internal BlowfishEngine STATIC_CRYPT = new BlowfishEngine();
 
         private BlowfishEngine _crypt = new BlowfishEngine();
         private bool _keySet = false;
+        private ILogger logger;
+
+        public LoginCrypt()
+        {
+            STATIC_CRYPT.Init(false, new KeyParameter(STATIC_BLOWFISH_KEY));
+            logger = Log.ForContext(GetType());
+        }
 
         public void SetKey(byte[] initPacketBlowfishKey)
         {
@@ -34,9 +62,15 @@ namespace L2Monitor.LoginServer
             _crypt.Init(false, new KeyParameter(initPacketBlowfishKey));
         }
 
-        public void Decrypt(byte[] rawData)
+        public void Decrypt(byte[] rawData, PacketDirection direction)
         {
             Decrypt(rawData, Constants.HEADER_SIZE, rawData.Length - Constants.HEADER_SIZE);
+
+            //init will need to be unxored
+            if(!_keySet)
+            {
+                DecXORPass(rawData);
+            }
         }
 
         public void Decrypt(byte[] raw, int offset, int size)
@@ -98,67 +132,6 @@ namespace L2Monitor.LoginServer
             }
         }
 
-        public void javaDecXORPass(byte[] raw)
-        {
-            int count = raw.Length / 4;
-            int pos = (count - 1) * 4;
-            int ecx;
-
-            ecx = (raw[--pos] & 0xFF) << 24;
-            ecx |= (raw[--pos] & 0xFF) << 16;
-            ecx |= (raw[--pos] & 0xFF) << 8;
-            ecx |= raw[--pos] & 0xFF;
-
-            int val;
-            while (pos > 4)
-            {
-                raw[--pos] ^= (byte)(ecx >> 24);
-                val = (raw[pos] & 0xFF) << 24;
-                raw[--pos] ^= (byte)(ecx >> 16);
-                val += (raw[pos] & 0xFF) << 16;
-                raw[--pos] ^= (byte)(ecx >> 8);
-                val += (raw[pos] & 0xFF) << 8;
-                raw[--pos] ^= (byte)ecx;
-                val += raw[pos] & 0xFF;
-
-                ecx = ecx - val;
-            }
-        }
-
-        public bool JavaChecksum(byte[] raw)
-        {
-            long chksum = 0;
-            int count = raw.Length - 4;
-            long ecx = -1; //avoids ecs beeing == chksum if an error occured in the try
-            int i = 0;
-            try
-            {
-                for (i = 0; i < count; i += 4)
-                {
-                    ecx = raw[i] & 0xff;
-                    ecx |= raw[i + 1] << 8 & 0xff00;
-                    ecx |= raw[i + 2] << 0x10 & 0xff0000;
-                    ecx |= raw[i + 3] << 0x18 & 0xff000000;
-
-                    chksum ^= ecx;
-                }
-
-                ecx = raw[i] & 0xff;
-                ecx |= raw[i + 1] << 8 & 0xff00;
-                ecx |= raw[i + 2] << 0x10 & 0xff0000;
-                ecx |= raw[i + 3] << 0x18 & 0xff000000;
-
-            }
-            catch (Exception e)
-            {
-                logger.Error("Error validating checksum");
-                //Looks like this will only happen on incoming packets as outgoing ones are padded
-                //and the error can only happen in last raw[i] =, raw [i+1] = ... and it doesnt really matters for incomming packets
-            }
-
-            return ecx == chksum;
-        }
-
         public bool Checksum(byte[] raw)
         {
             int chksum = 0;
@@ -186,5 +159,7 @@ namespace L2Monitor.LoginServer
 
             return ecx == chksum;
         }
+
+
     }
 }

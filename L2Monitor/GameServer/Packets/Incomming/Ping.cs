@@ -1,27 +1,32 @@
-﻿using L2Monitor.Common.Packets;
-using Serilog;
-using System;
-using System.Collections.Generic;
+﻿using L2Monitor.Classes;
+using L2Monitor.Common.Packets;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace L2Monitor.GameServer.Packets.Incomming
 {
     public class Ping : BasePacket
     {
         public uint RequestId { get; private set; }
-        public Ping(MemoryStream memStream) : base(memStream)
+        public Ping()
         {
-            RequestId = readUInt();
+
+        }
+        public Ping(MemoryStream memStream, PacketDirection direction) : base(memStream, false, direction)
+        {
+
+        }
+
+        public override IBasePacket Factory(byte[] raw, PacketDirection direction)
+        {
+            return new Ping(new MemoryStream(raw), direction);
+        }
+
+        public override void Run(IL2Client client)
+        {
+            RequestId = ReadUInt32();
             WarnOnRemainingData();
             baseLogger.Information("Ping Request: {data}", JsonSerializer.Serialize(this));
         }
-
-
-
-
     }
 }

@@ -1,9 +1,7 @@
 ﻿using L2Monitor.Classes;
-using L2Monitor.Common;
 using L2Monitor.Common.Packets;
 using L2Monitor.Config;
 using L2Monitor.GameServer.Packets;
-using L2Monitor.GameServer.Packets.Incomming;
 using L2Monitor.Util;
 using PacketDotNet;
 using PacketDotNet.Connections;
@@ -13,7 +11,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Transactions;
 
 namespace L2Monitor.GameServer
 {
@@ -76,7 +73,7 @@ namespace L2Monitor.GameServer
                 //await for next packet
                 if (absentPck.RemainingDataLength > 0)
                 {
-                    Logger.Information("{direction} Unfinished data1. Length: {len} Read: {read} Remaining: {remaining}", direction, absentPck.PacketLength, pckStream.Length, absentPck.RemainingDataLength);
+                    Logger.Information("{direction} Unfinished packet waiting in buffer. Length: {len} Remaining: {remaining} Packet data: {read}", direction, absentPck.PacketLength, absentPck.RemainingDataLength, pckStream.Length);
                     return;
                 }
 
@@ -88,9 +85,11 @@ namespace L2Monitor.GameServer
             {
                 if (remainingDatLen < 2)
                 {
-                    Logger.Error("Remaining data length less than 2, cannot read packet size, this should not happen");
-                    Debugger.Break();
-                    return;
+                    Logger.Warning("Remaining data length less than 2, will try to reconstruct from next frame");
+                    var partPck = new PacketInTransmit((byte)pckStream.ReadByte());
+                    buffer.Enqueue(partPck);
+                    remainingDatLen = pckStream.Length - pckStream.Position;
+                    continue;
                 }
                 var newPck = new PacketInTransmit(pckStream);
                 buffer.Enqueue(newPck);
@@ -116,7 +115,7 @@ namespace L2Monitor.GameServer
                 if (buffer.Peek().RemainingDataLength > 0)
                 {
                     var incPck = buffer.Peek();
-                    Logger.Information("{direction} Unfinished data2. Length: {len} Read: {read} Remaining: {remaining}", direction, incPck.PacketLength, pckStream.Length, incPck.RemainingDataLength);
+                    Logger.Information("{direction} Split data found. Length: {len} Remaining: {remaining} Packet data: {read}", direction, incPck.PacketLength, incPck.RemainingDataLength, pckStream.Length);
                     break;
                 }
 
@@ -129,8 +128,14 @@ namespace L2Monitor.GameServer
                 {
                     continue;
                 }
-
-                parsedPacket.Run(this);
+                try
+                {
+                    parsedPacket.Run(this);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e, "Error while running packet {0}", parsedPacket.GetType().Name);
+                }
             }
         }
 
@@ -139,7 +144,7 @@ namespace L2Monitor.GameServer
 
             var originalOpcode = new OpCode(data, false, direction);
             var isDecoded = false;
-            if (direction == PacketDirection.ClientToServer)
+            if (direction == PacketDirection.ClientToServer && Obfuscator.Inited)
             {
                 isDecoded = true;
                 Obfuscator.DecodedOpCode(data, Constants.HEADER_SIZE);
@@ -163,18 +168,18 @@ namespace L2Monitor.GameServer
                 var closest = packetList.Where(p => p.OpCode.Match(decoded)).Select(p => p.Name);
                 if (closest.Any())
                 {
-                    if (direction == PacketDirection.ClientToServer)
-                        Logger.Warning("{0}: Packet {1} was not found. Closest matches: {2} Data: {3}", direction, opCodeInfo, string.Join(';', closest), BitConverter.ToString(data, 2));
+                    //if (direction == PacketDirection.ClientToServer)
+                    Logger.Warning("{0}: Packet {1} was not found. Closest matches: {2} Data: {3}", direction, opCodeInfo, string.Join(';', closest), BitConverter.ToString(data, 2));
                     return null;
                 }
-                if (direction == PacketDirection.ClientToServer)
-                    Logger.Error("{0}: Unknown Packet {1} Len:{2} Data:{3}", direction, opCodeInfo, data.Length, BitConverter.ToString(data, 2));
+                //if (direction == PacketDirection.ClientToServer)
+                Logger.Error("{0}: Unknown Packet {1} Len:{2} Data:{3}", direction, opCodeInfo, data.Length, BitConverter.ToString(data, 2));
                 return null;
             }
             if (cp.Packet == null)
             {
-                if (direction == PacketDirection.ClientToServer)
-                    Logger.Warning("{0}: {1} ({2}) has been registered but no handler is present. Data: {3}", direction, cp.Name, opCodeInfo, BitConverter.ToString(data, 2));
+                //if (direction == PacketDirection.ClientToServer)
+                Logger.Warning("{0}: {1} ({2}) has been registered but no handler is present. Data: {3}", direction, cp.Name, opCodeInfo, BitConverter.ToString(data, 2));
                 return null;
             }
             return cp.Packet?.Factory(data, direction);

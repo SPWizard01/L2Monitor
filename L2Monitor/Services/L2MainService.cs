@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace L2Monitor.Services
 {
-    public class PacketInterceptionService : BackgroundService
+    public class L2MainService : BackgroundService
     {
         private TcpConnectionManager ConnectionManager;
         private ICaptureDevice CaptureDevice;
@@ -27,7 +27,7 @@ namespace L2Monitor.Services
         private IPAddress loginIp;
 
         //private ILogger
-        public PacketInterceptionService(ILogger<PacketInterceptionService> loggerInj, ClientHandler handlerInj)
+        public L2MainService(ILogger<L2MainService> loggerInj, ClientHandler handlerInj)
         {
             logger = loggerInj;
             handler = handlerInj;
@@ -140,13 +140,6 @@ namespace L2Monitor.Services
             }
             ConnectionManager.ProcessPacket(pck.Timeval, tcpPacket);
         }
-
-
-
-        //public override Task StartAsync(CancellationToken cancellationToken)
-        //{
-            
-        //}
 
         public override Task StopAsync(CancellationToken cancellationToken)
         {

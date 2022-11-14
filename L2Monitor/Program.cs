@@ -26,7 +26,8 @@ var host = Host.CreateDefaultBuilder(args)
     var globalConfig = ctx.Configuration.Get<AppSettings>();
     services.AddSingleton(globalConfig);
     services.AddSingleton<ClientHandler>();
-    services.AddHostedService<PacketInterceptionService>();
+    services.AddHostedService<L2MainService>();
+    services.AddHostedService<CleanupService>();
 });
 
 

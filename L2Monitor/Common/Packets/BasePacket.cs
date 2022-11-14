@@ -80,7 +80,7 @@ namespace L2Monitor.Common.Packets
             StringBuilder sb = new StringBuilder();
             char chr;
 
-            while ((chr = ReadChar()) != char.MinValue)
+            while (BaseStream.Position < BaseStream.Length && (chr = ReadChar()) != char.MinValue)
             {
                 sb.Append(chr);
             }

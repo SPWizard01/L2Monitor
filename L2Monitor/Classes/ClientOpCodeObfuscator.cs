@@ -13,25 +13,26 @@ namespace L2Monitor.Classes
         private byte[] _encodeTable1;
         private ushort[] _decodeTable2;
         private ushort[] _encodeTable2;
-        private bool inited = false;
+        public bool Inited { get; private set; } = false;
         private readonly AppSettings appSettings;
 
         public ClientOpCodeObfuscator(AppSettings appSettingsinj)
         {
 
             logger = Log.ForContext(GetType());
+            appSettings= appSettingsinj;
         }
         public void Init(uint seed)
         {
+            Inited = true;
             //208+1
             _decodeTable1 = new byte[0xD1];
             //yet to be found
-            _decodeTable2 = new ushort[544];
+            _decodeTable2 = new ushort[603];
             _encodeTable1 = new byte[_decodeTable1.Length];
             _encodeTable2 = new ushort[_decodeTable2.Length];
 
             logger.Information("Initialising obfuscation with {0}", seed);
-            inited = true;
             for (var i = 0; i < _decodeTable1.Length; ++i)
             {
                 _decodeTable1[i] = (byte)i;
@@ -106,14 +107,14 @@ namespace L2Monitor.Classes
 
         public byte GetDecodedOp1Code(byte encoded)
         {
-            if (!inited)
+            if (!Inited)
             {
                 logger.Error("Obfuscation has not been initialized");
                 return encoded;
             }
             if (encoded > _decodeTable1.Length)
             {
-                logger.Warning("Increase Op1 table size to at least {0}", encoded);
+                logger.Error("Increase Op1 table size to at least {0}", encoded);
                 return encoded;
             }
             return _decodeTable1[encoded];
@@ -121,14 +122,14 @@ namespace L2Monitor.Classes
 
         public ushort GetDecodedOp2Code(ushort encoded)
         {
-            if (!inited)
+            if (!Inited)
             {
                 logger.Error("Obfuscation has not been initialized");
                 return encoded;
             }
             if (encoded > _decodeTable2.Length)
             {
-                logger.Warning("Increase Op2 table size to at least {0}", encoded);
+                logger.Error("Increase Op2 table size to at least {0}", encoded);
                 return encoded;
             }
             return _decodeTable2[encoded];
@@ -136,7 +137,7 @@ namespace L2Monitor.Classes
 
         public void DecodedOpCode(byte[] raw, int offset)
         {
-            if (!inited)
+            if (!Inited)
             {
                 logger.Error("Obfuscation has not been initialized");
                 return;

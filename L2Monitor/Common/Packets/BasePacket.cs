@@ -14,13 +14,13 @@ namespace L2Monitor.Common.Packets
 
         [JsonIgnore]
         public ushort PacketSize { get; set; }
-        
+
         [JsonIgnore]
         public OpCode OpCode { get; set; }
-        
+
         [JsonIgnore]
         public override Stream BaseStream { get => base.BaseStream; }
-        
+
         public BasePacket() : base(new MemoryStream())
         {
 
@@ -50,9 +50,13 @@ namespace L2Monitor.Common.Packets
         public abstract void Run(IL2Client client);
 
 
-        internal void LogNewDataWarning(string dataName, object data)
+        internal void LogNewDataWarning(string dataName, object expected, object data)
         {
-            baseLogger.Warning("NEW DATA INSIDE PACKET {packetname}: {data}", dataName, data);
+            if (!expected.Equals(data))
+            {
+
+                baseLogger.Warning("NEW DATA INSIDE PACKET {0}: {1} Expected {2}", dataName, data, expected);
+            }
         }
         public bool HasRemainingData()
         {

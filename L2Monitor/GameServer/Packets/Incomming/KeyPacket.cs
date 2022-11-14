@@ -16,7 +16,7 @@ namespace L2Monitor.GameServer.Packets.Incomming
         public uint Unknown1 { get; set; }
         public uint ServerId { get; set; }
         public byte Unknown2 { get; set; }
-        public byte[] ObfuscationKey { get; set; }
+        public uint ObfuscationKey { get; set; }
         public KeyPacket()
         {
 
@@ -34,17 +34,17 @@ namespace L2Monitor.GameServer.Packets.Incomming
 
         public override void Run(IL2Client client)
         {
+            var cl = (GameClient)client;
             AuthSuccess = ReadBoolean();
             EncryptionKey = ReadBytes(8);
             Unknown1 = ReadUInt32();
             ServerId = ReadUInt32();
             Unknown2 = ReadByte();
-            ObfuscationKey = ReadBytes(4);
+            ObfuscationKey = ReadUInt32();
             WarnOnRemainingData();
-            client.Crypt.SetKey(EncryptionKey);
+            cl.Crypt.SetKey(EncryptionKey);
+            cl.Obfuscator.Init(ObfuscationKey);
             baseLogger.Information(JsonSerializer.Serialize(this));
-            baseLogger.Information(BitConverter.ToString(ObfuscationKey));
-            baseLogger.Information("{0}", BitConverter.ToInt32(ObfuscationKey, 0));
         }
 
     }

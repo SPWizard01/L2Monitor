@@ -38,7 +38,7 @@ namespace L2Monitor.LoginServer
         internal BlowfishEngine STATIC_CRYPT = new BlowfishEngine();
 
         private BlowfishEngine _crypt = new BlowfishEngine();
-        private bool _keySet = false;
+        public bool KeySet { get; private set; } = false;
         private ILogger logger;
 
         public LoginCrypt()
@@ -49,7 +49,7 @@ namespace L2Monitor.LoginServer
 
         public void SetKey(byte[] initPacketBlowfishKey)
         {
-            if (_keySet)
+            if (KeySet)
             {
                 logger.Error("Encryption key is already set");
                 return;
@@ -58,7 +58,7 @@ namespace L2Monitor.LoginServer
             {
                 logger.Error("Blowfish key has to be 16 bytes long, got key {len} long.", initPacketBlowfishKey.Length);
             }
-            _keySet = true;
+            KeySet = true;
             _crypt.Init(false, new KeyParameter(initPacketBlowfishKey));
         }
 
@@ -67,7 +67,7 @@ namespace L2Monitor.LoginServer
             Decrypt(rawData, Constants.HEADER_SIZE, rawData.Length - Constants.HEADER_SIZE);
 
             //init will need to be unxored
-            if(!_keySet)
+            if(!KeySet)
             {
                 DecXORPass(rawData);
             }
@@ -86,7 +86,7 @@ namespace L2Monitor.LoginServer
                 }
             }
 
-            var cryptToUse = _keySet ? _crypt : STATIC_CRYPT;
+            var cryptToUse = KeySet ? _crypt : STATIC_CRYPT;
 
             for (int i = offset; i < offset + size; i += 8)
             {

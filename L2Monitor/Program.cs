@@ -1,4 +1,7 @@
-﻿using L2Monitor.Services;
+﻿using L2Monitor.Common;
+using L2Monitor.Config;
+using L2Monitor.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -8,32 +11,27 @@ using System;
 
 Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-
                 .Enrich.FromLogContext()
                 .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
 var host = Host.CreateDefaultBuilder(args)
-                .ConfigureLogging(log =>
-                {
-                    log.ClearProviders();
-                    //if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == Environments.Development)
-                    //{
-
-                    //    log.AddDebug();
-                    //    log.AddConsole();
-                    //}
-                    log.AddSerilog();
-                })
-                .ConfigureServices((services) =>
-                {
-                    services.AddHostedService<PacketInterceptionService>();
-                });
+.ConfigureLogging(log =>
+{
+    log.ClearProviders();
+    log.AddSerilog();
+})
+.ConfigureServices((ctx, services) =>
+{
+    var globalConfig = ctx.Configuration.Get<AppSettings>();
+    services.AddSingleton(globalConfig);
+    services.AddSingleton<ClientHandler>();
+    services.AddHostedService<PacketInterceptionService>();
+});
 
 
 try
 {
-    Log.Information("Starting host");
     await host.RunConsoleAsync();
     return 0;
 }

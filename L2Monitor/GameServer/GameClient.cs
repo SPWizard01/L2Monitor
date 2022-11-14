@@ -1,6 +1,7 @@
 ﻿using L2Monitor.Classes;
 using L2Monitor.Common;
 using L2Monitor.Common.Packets;
+using L2Monitor.Config;
 using L2Monitor.GameServer.Packets;
 using L2Monitor.GameServer.Packets.Incomming;
 using L2Monitor.Util;
@@ -12,6 +13,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Transactions;
 
 namespace L2Monitor.GameServer
 {
@@ -19,19 +21,22 @@ namespace L2Monitor.GameServer
     {
         public ICrypt? Crypt { get; private set; } = new GameCrypt();
         public TcpConnection TcpConnection { get; set; }
+
+        public ClientOpCodeObfuscator Obfuscator { get; set; }
         public ConnectionState State { get; set; } = ConnectionState.CONNECTED;
         private ILogger Logger;
+        private readonly AppSettings appSettings;
 
-        private int MAX_FRAME_SIZE = 1460;
-        private PacketDirection incompleteDirection;
-        private byte[] incompletePacketData = Array.Empty<byte>();
         private Queue<PacketInTransmit> incommingBuffer = new();
         private Queue<PacketInTransmit> outgoingBuffer = new();
 
-        public GameClient(TcpConnection connection)
+        public GameClient(TcpConnection connection, AppSettings appSettingsInj)
         {
             Logger = Log.ForContext<GameClient>();
             TcpConnection = connection;
+            appSettings = appSettingsInj;
+
+            Obfuscator = new ClientOpCodeObfuscator(appSettings);
             connection.OnPacketReceived += Connection_OnPacketReceived;
             connection.OnConnectionClosed += Connection_OnConnectionClosed;
         }
@@ -40,7 +45,7 @@ namespace L2Monitor.GameServer
         {
             TcpConnection.OnPacketReceived -= Connection_OnPacketReceived;
             TcpConnection.OnConnectionClosed -= Connection_OnConnectionClosed;
-            ClientHandler.RemoveGameClient(this);
+            //ClientHandler.RemoveGameClient(this);
         }
 
         private void Connection_OnPacketReceived(SharpPcap.PosixTimeval timeval, TcpConnection connection, TcpFlow flow, TcpPacket tcpPacket)
@@ -131,26 +136,45 @@ namespace L2Monitor.GameServer
 
         private IBasePacket? ParsePacket(byte[] data, PacketDirection direction)
         {
-            var test = new OpCode(data, false, direction);
+
+            var originalOpcode = new OpCode(data, false, direction);
+            var isDecoded = false;
+            if (direction == PacketDirection.ClientToServer)
+            {
+                isDecoded = true;
+                Obfuscator.DecodedOpCode(data, Constants.HEADER_SIZE);
+            }
+            var opCodeInfo = string.Format("Original: {0}", originalOpcode.ToInfoString());
+
+            var decoded = isDecoded ? new OpCode(data, false, direction) : originalOpcode;
+
+            if (isDecoded)
+            {
+                opCodeInfo += string.Format(", Decoded: {0}", decoded.ToInfoString());
+            }
+
 
             var packetList = direction == PacketDirection.ServerToClient ? GamePacketsFromServer.All :
                                                                GamePacketsFromClient.All;
 
-            var cp = packetList.Where(p => p.OpCode.Match(test) && p.States.Contains(State)).FirstOrDefault();
+            var cp = packetList.Where(p => p.OpCode.Match(decoded) && p.States.Contains(State)).FirstOrDefault();
             if (cp == null)
             {
-                var closest = packetList.Where(p => p.OpCode.Match(test)).Select(p => p.Name);
+                var closest = packetList.Where(p => p.OpCode.Match(decoded)).Select(p => p.Name);
                 if (closest.Any())
                 {
-                    Logger.Error("{0}: Packet {1} was not found. Closest matches: {2} Data: {3}", direction, test.ToInfoString(), string.Join(';', closest), BitConverter.ToString(data, 2));
+                    if (direction == PacketDirection.ClientToServer)
+                        Logger.Warning("{0}: Packet {1} was not found. Closest matches: {2} Data: {3}", direction, opCodeInfo, string.Join(';', closest), BitConverter.ToString(data, 2));
                     return null;
                 }
-                Logger.Error("{direction}: Unknown Packet {OpCode} Len:{Len} Data:{data}", direction, test.ToInfoString(), data.Length, BitConverter.ToString(data, 2));
+                if (direction == PacketDirection.ClientToServer)
+                    Logger.Error("{0}: Unknown Packet {1} Len:{2} Data:{3}", direction, opCodeInfo, data.Length, BitConverter.ToString(data, 2));
                 return null;
             }
             if (cp.Packet == null)
             {
-                Logger.Warning("{0}: {1} has been registered but no handler is present. Data: {2}", direction, cp.Name, BitConverter.ToString(data, 2));
+                if (direction == PacketDirection.ClientToServer)
+                    Logger.Warning("{0}: {1} ({2}) has been registered but no handler is present. Data: {3}", direction, cp.Name, opCodeInfo, BitConverter.ToString(data, 2));
                 return null;
             }
             return cp.Packet?.Factory(data, direction);

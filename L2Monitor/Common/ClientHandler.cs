@@ -1,58 +1,60 @@
-﻿using PacketDotNet;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using L2Monitor.Config;
 using L2Monitor.GameServer;
 using L2Monitor.LoginServer;
 using PacketDotNet.Connections;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace L2Monitor.Common
 {
-    public static class ClientHandler
+    public sealed class ClientHandler
     {
-        private static List<LoginClient> loginClients = new List<LoginClient>();
-        private static List<GameClient> gameClients = new List<GameClient>();
-
-        public static LoginClient GetLoginClient()
+        public List<LoginClient> LoginClients { get; } = new();
+        public List<GameClient> GameClients { get; } = new();
+        private readonly AppSettings appSettings;
+        public LoginClient GetLoginClient()
         {
-            return loginClients.FirstOrDefault();
+            return LoginClients.FirstOrDefault();
         }
 
-        public static void HandleLoginClient(TcpConnection connection)
+        public ClientHandler(AppSettings appSettingsInj)
         {
-            if(loginClients.Any(c=>c.TcpConnection == connection))
+            appSettings = appSettingsInj;
+        }
+
+        public void HandleLoginClient(TcpConnection connection)
+        {
+            if (LoginClients.Any(c => c.TcpConnection == connection))
             {
                 return;
             }
             var newClient = new LoginClient(connection);
-            loginClients.Add(newClient);
-
+            LoginClients.Add(newClient);
         }
 
-        internal static void HandleGameClient(TcpConnection connection)
+        internal void HandleGameClient(TcpConnection connection)
         {
-            if (gameClients.Any(c => c.TcpConnection == connection))
+            if (GameClients.Any(c => c.TcpConnection == connection))
             {
                 return;
             }
-            var newClient = new GameClient(connection);
-            gameClients.Add(newClient);
+            var newClient = new GameClient(connection, appSettings);
+            GameClients.Add(newClient);
         }
 
-        internal static void RemoveGameClient(GameClient client)
+        internal void RemoveGameClient(GameClient client)
         {
-            if(gameClients.Contains(client))
+            if (GameClients.Contains(client))
             {
-                gameClients.Remove(client);
+                GameClients.Remove(client);
             }
         }
 
-        internal static void RemoveLoginClient(LoginClient client)
+        internal void RemoveLoginClient(LoginClient client)
         {
-            if (loginClients.Contains(client))
+            if (LoginClients.Contains(client))
             {
-                loginClients.Remove(client);
+                LoginClients.Remove(client);
             }
         }
     }

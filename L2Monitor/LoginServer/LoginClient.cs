@@ -37,7 +37,7 @@ namespace L2Monitor.LoginServer
         {
             connection.OnConnectionClosed -= Connection_OnConnectionClosed;
             connection.OnPacketReceived -= Connection_OnPacketReceived;
-            ClientHandler.RemoveLoginClient(this);
+            //ClientHandler.RemoveLoginClient(this);
         }
 
         private void Connection_OnPacketReceived(SharpPcap.PosixTimeval timeval, TcpConnection connection, TcpFlow flow, TcpPacket tcp)
@@ -135,7 +135,7 @@ namespace L2Monitor.LoginServer
                 var closest = packetList.Where(p => p.OpCode.Match(test)).Select(p => p.Name);
                 if (closest.Any())
                 {
-                    logger.Error("Packet {1} was not found. Closest matches: {1}", test.ToInfoString(), string.Join(';', closest));
+                    logger.Error("Packet {0} was not found. Closest matches: {1}", test.ToInfoString(), string.Join(';', closest));
                     return null;
                 }
                 logger.Error("{direction}: Unknown Packet {OpCode} Len:{Len} Data:{data}", direction, test.ToInfoString(), data.Length, BitConverter.ToString(data));

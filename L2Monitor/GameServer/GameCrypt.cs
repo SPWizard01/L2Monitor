@@ -24,7 +24,7 @@ namespace L2Monitor.GameServer
         private byte[] serverToClientKey = new byte[16];
         private byte[] clientToServerKey = new byte[16];
 
-        private bool _keySet = false;
+        public bool KeySet { get; private set; } = false;
         private ILogger logger;
         public GameCrypt()
         {
@@ -41,7 +41,7 @@ namespace L2Monitor.GameServer
             StaticPart.CopyTo(serverToClientKey, 8);
             key.CopyTo(clientToServerKey, 0);
             StaticPart.CopyTo(clientToServerKey, 8);
-            _keySet = true;
+            KeySet = true;
         }
 
         public void Decrypt(byte[] raw, PacketDirection direction)
@@ -52,7 +52,7 @@ namespace L2Monitor.GameServer
 
         public void Decrypt(byte[] raw, int offset, int size, PacketDirection direction)
         {
-            if (!_keySet)
+            if (!KeySet)
             {
                 return;
             }

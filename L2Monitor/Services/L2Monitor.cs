@@ -1,4 +1,5 @@
 ﻿using L2Monitor.Common;
+using L2Monitor.GameServer;
 using L2Monitor.LoginServer;
 using L2Monitor.Util;
 using Microsoft.Extensions.Hosting;
@@ -8,29 +9,33 @@ using PacketDotNet.Connections;
 using SharpPcap;
 using System;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace L2Monitor.Services
 {
-    public class PacketInterceptionService : IHostedService
+    public class PacketInterceptionService : BackgroundService
     {
         private TcpConnectionManager ConnectionManager;
         private ICaptureDevice CaptureDevice;
-        private ILogger Logger;
-        private LoginCrypt Crypt;
+        private ILogger logger;
+
+        private readonly ClientHandler handler;
+
+        private IPAddress gameIp;
+        private IPAddress loginIp;
+
         //private ILogger
-        public PacketInterceptionService(ILogger<PacketInterceptionService> logger)
+        public PacketInterceptionService(ILogger<PacketInterceptionService> loggerInj, ClientHandler handlerInj)
         {
-            Crypt = new LoginCrypt();
-            Logger = logger;
+            logger = loggerInj;
+            handler = handlerInj;
         }
         public void Run()
         {
-            var ver = Pcap.Version;
             /* Print SharpPcap version */
-            Console.WriteLine("SharpPcap {0}", ver);
-            Console.WriteLine();
+            logger.LogInformation("SharpPcap {0}", Pcap.Version);
 
 
             /* Retrieve the device list */
@@ -39,13 +44,13 @@ namespace L2Monitor.Services
             /*If no device exists, print error */
             if (devices.Count < 1)
             {
-                Console.WriteLine("No device found on this machine");
+                logger.LogWarning("No device found on this machine, ensure Npcap {0} installed.", new Uri("https://npcap.com/#download"));
                 return;
             }
 
-            Console.WriteLine("The following devices are available on this machine:");
-            Console.WriteLine("----------------------------------------------------");
-            Console.WriteLine();
+            logger.LogInformation("The following devices are available on this machine:");
+            logger.LogInformation("----------------------------------------------------");
+            logger.LogInformation("");
 
             int i = 0;
 
@@ -53,12 +58,12 @@ namespace L2Monitor.Services
             foreach (var dev in devices)
             {
                 /* Description */
-                Console.WriteLine("{0}) {1} {2}", i, dev.Name, dev.Description);
+                logger.LogInformation("{0}) {1} {2}", i, dev.Name, dev.Description);
                 i++;
             }
 
-            Console.WriteLine();
-            Console.Write("-- Please choose a device to capture: ");
+            logger.LogInformation("");
+            logger.LogInformation("-- Please choose a device to capture: ");
             i = int.Parse(Console.ReadLine());
 
             CaptureDevice = devices[i];
@@ -72,21 +77,26 @@ namespace L2Monitor.Services
             ConnectionManager.OnConnectionFound += TcpConnectionManager_OnConnectionFound; ;
             //tcpdump filter to capture only TCP/IP packets
             //host 109.105.133.76 and
-            Logger.LogInformation("Ruoff Login: 5.63.132.147");
-            Logger.LogInformation("Ruoff Elcardia Game: 109.105.133.38");
-            Console.WriteLine("-- Enter login server IP i.e. 127.0.0.1: ");
-            var lognIp = Console.ReadLine();
+            logger.LogInformation("Ruoff Login: 5.63.132.147");
+            logger.LogInformation("Ruoff Elcardia Game: 109.105.133.38");
+            logger.LogInformation("-- Enter login server IP i.e. 127.0.0.1: ");
+            var lgIp = Console.ReadLine();
+            lgIp = string.IsNullOrEmpty(lgIp) ? "52.201.101.83" : lgIp;
+            loginIp = IPAddress.Parse(lgIp);
 
-            Console.WriteLine("-- Enter game server IP i.e. 127.0.0.1: ");
-            var gameIp = Console.ReadLine();
+            logger.LogInformation("-- Enter game server IP i.e. 127.0.0.1: ");
+            var gmIp = Console.ReadLine();
+            gmIp = string.IsNullOrEmpty(gmIp) ? "50.16.39.66" : gmIp;
+            gameIp = IPAddress.Parse(gmIp);
+
             //109.105.133.38 ru game
             //5.63.132.147 ru login
 
             //52.44.183.4 us game naia
             //50.16.39.66 us game chronos
             //52.201.101.83 us login
-            string filter = $"(host {(string.IsNullOrEmpty(gameIp) ? "50.16.39.66" : gameIp)} or " +
-                             $"host {(string.IsNullOrEmpty(lognIp) ? "52.201.101.83" : lognIp)}) and " +
+            string filter = $"(host {gameIp} or " +
+                             $"host {loginIp}) and " +
                             $"(tcp src port 2106 or " +
                               "tcp dst port 2106 or " +
                               "tcp src port 7777 or " +
@@ -94,12 +104,10 @@ namespace L2Monitor.Services
 
 
             //string filter = $"host {(string.IsNullOrEmpty(gameIp) ? "109.105.133.76" : gameIp)} and (tcp src port 7777 or tcp dst port 7777)";
-            Console.WriteLine($"Filter: {filter}");
+            logger.LogInformation("Filter: {0}", filter);
             CaptureDevice.Filter = filter;
 
-            Console.WriteLine
-                ("-- Listening on {0}, hit 'Ctrl-C' to exit...",
-                CaptureDevice.Description);
+            logger.LogInformation("Listening on {0}, hit 'Ctrl-C' to exit...", CaptureDevice.Description);
 
             // Start capture 'INFINTE' number of packets
             CaptureDevice.Capture();
@@ -107,14 +115,13 @@ namespace L2Monitor.Services
 
         private void TcpConnectionManager_OnConnectionFound(TcpConnection connection)
         {
-            if (connection.Flows.Any(f => f.port == Constants.LOGIN_PORT))
+            if (connection.Flows.Any(f => f.port == Constants.LOGIN_PORT && f.address.Equals(loginIp)))
             {
-                ClientHandler.HandleLoginClient(connection);
+                handler.HandleLoginClient(connection);
             }
-
-            if (connection.Flows.Any(f => f.port == Constants.GAME_PORT))
+            if (connection.Flows.Any(f => f.port == Constants.GAME_PORT && f.address.Equals(gameIp)))
             {
-                ClientHandler.HandleGameClient(connection);
+                handler.HandleGameClient(connection);
             }
 
         }
@@ -131,40 +138,28 @@ namespace L2Monitor.Services
             {
                 return;
             }
-            //var dest = tcpPacket.SourcePort == Constants.LOGIN_PORT ? PacketDirection.ServerToClient : PacketDirection.ClientToServer;
-            //var data = new byte[tcpPacket.PayloadData.Length];
-            //tcpPacket.PayloadData.CopyTo(data, 0);
-            //var logAddr = $"{dest} Data: {BitConverter.ToString(data)}";
-            //Logger.LogInformation(logAddr);
-            //Crypt.Decrypt(data, 2, data.Length - 2);
-            //if(data[2] == 0 && Crypt.IsInitial)
-            //{
-            //    Logger.LogInformation($"{dest} BXOR Data: {BitConverter.ToString(data)}");
-            //    Crypt.DecXORPass(data);
-            //    var init = new Init(new System.IO.MemoryStream(data));
-            //    Crypt.SetKey(init.BlowFishKey);
-            //}
-            //Logger.LogInformation($"{dest} DEC Data: {BitConverter.ToString(data)}");
-            //var ipv4Packet = packet.Extract<IPv4Packet>();
-
             ConnectionManager.ProcessPacket(pck.Timeval, tcpPacket);
-
         }
 
 
 
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            return Task.Run(Run);
-        }
+        //public override Task StartAsync(CancellationToken cancellationToken)
+        //{
+            
+        //}
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public override Task StopAsync(CancellationToken cancellationToken)
         {
             ConnectionManager.OnConnectionFound -= TcpConnectionManager_OnConnectionFound;
             CaptureDevice.OnPacketArrival -= device_OnPacketArrival;
             CaptureDevice.StopCapture();
             CaptureDevice.Close();
             return Task.CompletedTask;
+        }
+
+        protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            return Task.Run(Run);
         }
     }
 }

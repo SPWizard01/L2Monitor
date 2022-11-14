@@ -35,12 +35,12 @@ namespace L2Monitor.GameServer.Packets.Incomming
         public override void Run(IL2Client client)
         {
             ObjectId = ReadInt32();
-            FromX = ReadInt32();
-            FromY = ReadInt32();
-            FromZ = ReadInt32();
             ToX = ReadInt32();
             ToY = ReadInt32();
             ToZ = ReadInt32();
+            FromX = ReadInt32();
+            FromY = ReadInt32();
+            FromZ = ReadInt32();
             baseLogger.Information(JsonSerializer.Serialize(this));
         }
 

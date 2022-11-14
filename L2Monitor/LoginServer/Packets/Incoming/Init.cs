@@ -46,10 +46,7 @@ namespace L2Monitor.LoginServer.Packets.Incoming
             SessionId = ReadUInt32();
 
             ProtocolVersion = ReadUInt32();
-            if (ProtocolVersion != 50721)
-            {
-                LogNewDataWarning(nameof(ProtocolVersion), ProtocolVersion);
-            }
+            LogNewDataWarning(nameof(ProtocolVersion), 50721, ProtocolVersion);
 
             RSAPublicKey = ReadBytes(128);
 
@@ -61,16 +58,11 @@ namespace L2Monitor.LoginServer.Packets.Incoming
 
             BlowFishKey = ReadBytes(16);
             Unknown6 = ReadInt32();
-            if (Unknown6 != 133123)
-            {
-                LogNewDataWarning(nameof(Unknown6), Unknown6);
-            }
+            LogNewDataWarning(nameof(Unknown6), 133123, Unknown6);
+
             UnknownBytes = ReadBytes(11);
             Unknown7 = ReadInt32();
-            if (Unknown7 != 0)
-            {
-                LogNewDataWarning(nameof(Unknown7), Unknown7);
-            }
+            LogNewDataWarning(nameof(Unknown7), 0, Unknown7);
             Unknown8 = ReadUInt32();
             WarnOnRemainingData();
 

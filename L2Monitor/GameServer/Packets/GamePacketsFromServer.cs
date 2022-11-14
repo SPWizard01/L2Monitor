@@ -22,7 +22,7 @@ namespace L2Monitor.GameServer.Packets
             new RegisteredPacket("DELETE_OBJECT",0x08, null, allStates),
             new RegisteredPacket("CHARACTER_SELECTION_INFO",0x09, new CharSelectInfo(), allStates),
             new RegisteredPacket("LOGIN_OUTCOME",0x0A, new LoginOutcome(), allStates),
-            new RegisteredPacket("CHARACTER_SELECTED",0x0B, null, allStates),
+            new RegisteredPacket("CHARACTER_SELECTED",0x0B, new CharacterSelected(), allStates),
             new RegisteredPacket("NPC_INFO",0x0C, null, allStates),
             new RegisteredPacket("NEW_CHARACTER_SUCCESS",0x0D, null, allStates),
             new RegisteredPacket("NEW_CHARACTER_FAIL",0x0E, null, allStates),

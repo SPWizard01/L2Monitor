@@ -28,8 +28,12 @@ namespace L2Monitor.GameServer.Packets.Outgoing
             RequestId = ReadUInt32();
             SomeNumber = ReadUInt32();
             Unknown = ReadUInt32();
+            if (Unknown != 3686)
+            {
+                LogNewDataWarning(nameof(Unknown), 3686, Unknown);
+            }
             WarnOnRemainingData();
-            baseLogger.Information("Ping Reply: {data}", JsonSerializer.Serialize(this));
+
 
         }
 

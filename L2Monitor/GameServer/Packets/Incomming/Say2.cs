@@ -39,11 +39,19 @@ namespace L2Monitor.GameServer.Packets.Incomming
             RequestId = ReadUInt32();
             Type = ReadUInt16();
             Unknown1 = ReadUInt16();
+            if (Unknown1 != 0)
+            {
+                LogNewDataWarning(nameof(Unknown1), 0, Unknown1);
+            }
             Actor = ReadString();
             Unknown2 = ReadInt32();
+            if (Unknown2 != -1)
+            {
+                LogNewDataWarning(nameof(Unknown2), -1, Unknown2);
+            }
             Msg = ReadString();
             WarnOnRemainingData();
-            baseLogger.Information("Chat: {data}", JsonSerializer.Serialize(this));
+            baseLogger.Information("{data}", JsonSerializer.Serialize(this));
         }
     }
 }

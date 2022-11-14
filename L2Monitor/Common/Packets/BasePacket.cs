@@ -3,6 +3,7 @@ using L2Monitor.Util;
 using Serilog;
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -52,11 +53,7 @@ namespace L2Monitor.Common.Packets
 
         internal void LogNewDataWarning(string dataName, object expected, object data)
         {
-            if (!expected.Equals(data))
-            {
-
-                baseLogger.Warning("NEW DATA INSIDE PACKET {0}: {1} Expected {2}", dataName, data, expected);
-            }
+            baseLogger.Warning("NEW DATA INSIDE PACKET {0}: {1} Expected {2}", dataName, data, expected);
         }
         public bool HasRemainingData()
         {
@@ -108,7 +105,11 @@ namespace L2Monitor.Common.Packets
             if (HasRemainingData())
             {
                 var data = GetRemainingData();
-                baseLogger.Warning($"This packet has remaining data: {BitConverter.ToString(data)}");
+                baseLogger.Debug($"This packet has remaining data: {BitConverter.ToString(data)}");
+                if (data.Any(b => b != 0))
+                {
+                    baseLogger.Warning($"This packet has remaining data: {BitConverter.ToString(data)}");
+                }
             }
         }
 

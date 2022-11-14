@@ -72,12 +72,18 @@ namespace L2Monitor.GameServer.Packets.Incomming
             SessionId = ReadUInt32();
             ClanId = ReadUInt32();
             Unknown1 = ReadUInt32();
-            LogNewDataWarning(nameof(Unknown1), 0, Unknown1);
+            if (Unknown1 != 0)
+            {
+                LogNewDataWarning(nameof(Unknown1), 0, Unknown1);
+            }
             IsFemale = ReadInt32();
             RaceId = ReadUInt32();
             ClassId = ReadUInt32();
             Unknown2 = ReadUInt32();
-            LogNewDataWarning(nameof(Unknown2), 1, Unknown2);
+            if (Unknown2 != 1)
+            {
+                LogNewDataWarning(nameof(Unknown2), 1, Unknown2);
+            }
             X = ReadInt32();
             Y = ReadInt32();
             Z = ReadInt32();
@@ -90,13 +96,16 @@ namespace L2Monitor.GameServer.Packets.Incomming
             PKKills = ReadInt32();
             GameTime = ReadInt32();
             Unknown3 = ReadInt32();
-            LogNewDataWarning(nameof(Unknown3), 0, Unknown3);
+            if (Unknown3 != 0)
+            {
+                LogNewDataWarning(nameof(Unknown3), 0, Unknown3);
+            }
             ClassId2 = ReadInt32();
             Unknown4 = ReadBytes(16);
             Unknown5 = ReadBytes(36);
             Unknown6 = ReadBytes(28);
             ObfuscationKey = ReadUInt32();
-
+            
             var cl = (GameClient)client;
             cl.Obfuscator.Init(ObfuscationKey);
 

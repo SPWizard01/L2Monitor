@@ -85,7 +85,7 @@ namespace L2Monitor.GameServer.Packets
             new RegisteredPacket("STOP_MOVE",0x47, null, allStates),
             new RegisteredPacket("MAGIC_SKILL_USE",0x48, null, allStates),
             new RegisteredPacket("MAGIC_SKILL_CANCELED",0x49, null, allStates),
-            new RegisteredPacket("SAY2",0x4A, null, allStates),
+            new RegisteredPacket("SAY2",0x4A, new Say2(), allStates),
             new RegisteredPacket("NPC_INFO_ABNORMAL_VISUAL_EFFECT",0x4B, null, allStates),
             new RegisteredPacket("DOOR_INFO",0x4C, null, allStates),
             new RegisteredPacket("DOOR_STATUS_UPDATE",0x4D, null, allStates),

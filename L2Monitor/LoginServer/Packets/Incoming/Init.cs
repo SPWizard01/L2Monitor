@@ -33,7 +33,7 @@ namespace L2Monitor.LoginServer.Packets.Incoming
 
         public Init(MemoryStream raw, PacketDirection direction) : base(raw, true, direction)
         {
-            
+
         }
 
         public override IBasePacket Factory(byte[] raw, PacketDirection direction)
@@ -46,7 +46,10 @@ namespace L2Monitor.LoginServer.Packets.Incoming
             SessionId = ReadUInt32();
 
             ProtocolVersion = ReadUInt32();
-            LogNewDataWarning(nameof(ProtocolVersion), 50721, ProtocolVersion);
+            if (ProtocolVersion != 50721)
+            {
+                LogNewDataWarning(nameof(ProtocolVersion), 50721, ProtocolVersion);
+            }
 
             RSAPublicKey = ReadBytes(128);
 
@@ -58,11 +61,13 @@ namespace L2Monitor.LoginServer.Packets.Incoming
 
             BlowFishKey = ReadBytes(16);
             Unknown6 = ReadInt32();
-            LogNewDataWarning(nameof(Unknown6), 133123, Unknown6);
+            if (Unknown6 != 133123)
+                LogNewDataWarning(nameof(Unknown6), 133123, Unknown6);
 
             UnknownBytes = ReadBytes(11);
             Unknown7 = ReadInt32();
-            LogNewDataWarning(nameof(Unknown7), 0, Unknown7);
+            if (Unknown7 != 0)
+                LogNewDataWarning(nameof(Unknown7), 0, Unknown7);
             Unknown8 = ReadUInt32();
             WarnOnRemainingData();
 

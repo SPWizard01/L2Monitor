@@ -26,7 +26,7 @@ namespace L2Monitor.GameServer.Packets.Incomming
         {
             RequestId = ReadUInt32();
             WarnOnRemainingData();
-            baseLogger.Information("Ping Request: {data}", JsonSerializer.Serialize(this));
+            //baseLogger.Information("Ping Request: {data}", JsonSerializer.Serialize(this));
         }
     }
 }

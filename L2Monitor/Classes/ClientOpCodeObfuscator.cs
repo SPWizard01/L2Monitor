@@ -27,8 +27,8 @@ namespace L2Monitor.Classes
             Inited = true;
             //208+1
             _decodeTable1 = new byte[0xD1];
-            //yet to be found
-            _decodeTable2 = new ushort[603];
+            //yet to be found 605
+            _decodeTable2 = new ushort[0x25D];
             _encodeTable1 = new byte[_decodeTable1.Length];
             _encodeTable2 = new ushort[_decodeTable2.Length];
 

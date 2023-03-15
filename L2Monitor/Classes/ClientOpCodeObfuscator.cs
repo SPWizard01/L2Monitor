@@ -1,5 +1,4 @@
-﻿using L2Monitor.Common.Packets;
-using L2Monitor.Config;
+﻿using L2Monitor.Config;
 using L2Monitor.Util;
 using Serilog;
 using System;
@@ -20,15 +19,15 @@ namespace L2Monitor.Classes
         {
 
             logger = Log.ForContext(GetType());
-            appSettings= appSettingsinj;
+            appSettings = appSettingsinj;
         }
         public void Init(uint seed)
         {
             Inited = true;
             //208+1
-            _decodeTable1 = new byte[0xD1];
+            _decodeTable1 = new byte[appSettings.MaxOp1Code + 1];
             //yet to be found
-            _decodeTable2 = new ushort[603];
+            _decodeTable2 = new ushort[appSettings.MaxOp2Code + 1];
             _encodeTable1 = new byte[_decodeTable1.Length];
             _encodeTable2 = new ushort[_decodeTable2.Length];
 

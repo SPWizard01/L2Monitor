@@ -1,7 +1,4 @@
-﻿using L2Monitor.Config;
-using L2Monitor.Util;
-using Serilog;
-using System;
+﻿using System;
 
 namespace L2Monitor.Classes
 {

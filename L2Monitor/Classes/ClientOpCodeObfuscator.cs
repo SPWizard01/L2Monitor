@@ -23,6 +23,12 @@ namespace L2Monitor.Classes
         }
         public void Init(uint seed)
         {
+            if (Inited)
+            {
+                logger.Error("Obfuscator has already been inited, this indicates that there was probably an error in the stream...");
+                return;
+            }
+
             Inited = true;
             //208+1
             _decodeTable1 = new byte[appSettings.MaxOp1Code + 1];

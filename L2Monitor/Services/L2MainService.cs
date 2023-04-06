@@ -1,6 +1,4 @@
 ﻿using L2Monitor.Common;
-using L2Monitor.GameServer;
-using L2Monitor.LoginServer;
 using L2Monitor.Util;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

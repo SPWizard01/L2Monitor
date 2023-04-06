@@ -51,49 +51,48 @@ namespace L2Monitor.GameServer
             {
                 return;
             }
-            var data = (byte[])tcpPacket.PayloadData.Clone();
 
+            var frameData = new byte[tcpPacket.PayloadData.Length];//(byte[])tcpPacket.PayloadData.Clone();
+            Buffer.BlockCopy(tcpPacket.PayloadData, 0, frameData, 0, frameData.Length);
 
             var direction = tcpPacket.SourcePort == Constants.GAME_PORT ? PacketDirection.ServerToClient : PacketDirection.ClientToServer;
 
-            var pckStream = new MemoryStream(data);
+            var frameStream = new MemoryStream(frameData);
             var buffer = direction == PacketDirection.ServerToClient ? incommingBuffer : outgoingBuffer;
 
             //we have incomplete packets, should actualy be 1 if any
             if (buffer.Any())
             {
                 var absentPck = buffer.Peek();
-                absentPck.AddData(pckStream);
-                if (absentPck.RemainingDataLength > 0 && pckStream.Position < pckStream.Length)
+                absentPck.AddData(frameStream);
+                if (absentPck.RemainingDataLength > 0 && frameStream.Position < frameStream.Length)
                 {
-                    Logger.Error("This should not happen");
-                    Debugger.Break();
+                    throw new InvalidDataException("There is still remaining data to be read inside buffer but Frame has remaning data. This should not happen");
                 }
 
                 //await for next packet
                 if (absentPck.RemainingDataLength > 0)
                 {
-                    Logger.Information("{direction} Unfinished packet waiting in buffer. Length: {len} Remaining: {remaining} Packet data: {read}", direction, absentPck.PacketLength, absentPck.RemainingDataLength, pckStream.Length);
+                    Logger.Information("{direction} Unfinished packet waiting in buffer. Length: {len} Remaining: {remaining} Frame data: {read}", direction, absentPck.PacketLength, absentPck.RemainingDataLength, frameStream.Length);
                     return;
                 }
 
             }
 
-            var remainingDatLen = pckStream.Length - pckStream.Position;
+            var remainingDatLen = frameStream.Length - frameStream.Position;
 
             while (remainingDatLen > 0)
             {
                 if (remainingDatLen < 2)
                 {
                     Logger.Warning("Remaining data length less than 2, will try to reconstruct from next frame");
-                    var partPck = new PacketInTransmit((byte)pckStream.ReadByte());
+                    var partPck = new PacketInTransmit((byte)frameStream.ReadByte());
                     buffer.Enqueue(partPck);
-                    remainingDatLen = pckStream.Length - pckStream.Position;
-                    continue;
+                    return;
                 }
-                var newPck = new PacketInTransmit(pckStream);
+                var newPck = new PacketInTransmit(frameStream);
                 buffer.Enqueue(newPck);
-                remainingDatLen = pckStream.Length - pckStream.Position;
+                remainingDatLen = frameStream.Length - frameStream.Position;
                 if ((remainingDatLen > 0 && newPck.RemainingDataLength > 0) || remainingDatLen < 0)
                 {
                     Logger.Error("This should not happen");
@@ -105,17 +104,15 @@ namespace L2Monitor.GameServer
             //process any full packets in the queue
             while (buffer.Any())
             {
-                if (buffer.Peek().RemainingDataLength > 0 && buffer.Count() > 1)
+                var pckInTransmit = buffer.Peek();
+                if (pckInTransmit.RemainingDataLength > 0 && buffer.Count() > 1)
                 {
-                    Logger.Error("This should not happen");
-                    Debugger.Break();
-                    return;
+                    throw new InvalidDataException("Remaining data to be received is non 0 however the buffer still has some leftovers.");
                 }
                 //last item in array awaiting data
-                if (buffer.Peek().RemainingDataLength > 0)
+                if (pckInTransmit.RemainingDataLength > 0)
                 {
-                    var incPck = buffer.Peek();
-                    Logger.Information("{direction} Split data found. Length: {len} Remaining: {remaining} Packet data: {read}", direction, incPck.PacketLength, incPck.RemainingDataLength, pckStream.Length);
+                    Logger.Information("{direction} Split data found. Length: {len} Remaining: {remaining} Packet data: {read}", direction, pckInTransmit.PacketLength, pckInTransmit.RemainingDataLength, frameStream.Length);
                     break;
                 }
 
@@ -159,13 +156,29 @@ namespace L2Monitor.GameServer
             }
 
 
-            var packetList = direction == PacketDirection.ServerToClient ? GamePacketsFromServer.All :
-                                                               GamePacketsFromClient.All;
+            var packetList = direction == PacketDirection.ServerToClient ?
+                                               GamePacketsFromServer.All :
+                                               GamePacketsFromClient.All;
+            RegisteredPacket? cp = null;
+            foreach (var packet in packetList)
+            {
+                if (packet.OpCode.Match(decoded) && packet.States.Contains(State))
+                {
+                    cp = packet;
+                    break;
+                }
+            }
 
-            var cp = packetList.Where(p => p.OpCode.Match(decoded) && p.States.Contains(State)).FirstOrDefault();
             if (cp == null)
             {
-                var closest = packetList.Where(p => p.OpCode.Match(decoded)).Select(p => p.Name);
+                var closest = new List<string>();
+                foreach (var packet in packetList)
+                {
+                    if (packet.OpCode.Match(decoded))
+                    {
+                        closest.Add(packet.Name);
+                    }
+                }
                 if (closest.Any())
                 {
                     //if (direction == PacketDirection.ClientToServer)

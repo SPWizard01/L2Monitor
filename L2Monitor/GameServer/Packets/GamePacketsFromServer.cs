@@ -2,14 +2,14 @@
 using L2Monitor.Common.Packets;
 using L2Monitor.GameServer.Packets.Incomming;
 using System;
-using System.Collections.Generic;
 
 namespace L2Monitor.GameServer.Packets
 {
     public static class GamePacketsFromServer
     {
         private static ConnectionState[] allStates = Enum.GetValues<ConnectionState>();
-        public static List<RegisteredPacket> All { get; } = new()
+        public static ReadOnlySpan<RegisteredPacket> All => _all;
+        private static readonly RegisteredPacket[] _all = new[]
         {
             new RegisteredPacket("DIE",0x00, null, allStates),
             new RegisteredPacket("REVIVE",0x01, null, allStates),
@@ -1048,11 +1048,78 @@ namespace L2Monitor.GameServer.Packets
             new RegisteredPacket("EX_WORLD_EXCHANGE_SELL_COMPLETE_ALARM",0xFE, 0x302, null, allStates),
             new RegisteredPacket("EX_READY_ITEM_AUTO_PEEL",0xFE, 0x303, null, allStates),
             new RegisteredPacket("EX_RESULT_ITEM_AUTO_PEEL",0xFE, 0x304, null, allStates),
-            new RegisteredPacket("EX_STOP_ITEM_AUTO_PEEL",0xFE, 0x305, null, allStates),
-            new RegisteredPacket("EX_TIME_RESTRICT_FIELD_DIE_LIMT_TIME",0xFE, 0x306, null, allStates),
-            new RegisteredPacket("EX_APPLY_VARIATION_OPTION",0xFE, 0x307, null, allStates),
-            new RegisteredPacket("EX_BR_VERSION",0xFE, 0x308, null, allStates),
-            new RegisteredPacket("EX_MAX",0xFE, 0x309, null, allStates),
+            new RegisteredPacket("EX_STOP_ITEM_AUTO_PEEL", 0xFE, 0x305, null, allStates),
+            new RegisteredPacket("EX_TIME_RESTRICT_FIELD_DIE_LIMT_TIME", 0xFE, 0x306, null, allStates),
+            new RegisteredPacket("EX_APPLY_VARIATION_OPTION", 0xFE, 0x307, null, allStates),
+            new RegisteredPacket("EX_REQUEST_AUDIO_LOG_SAVE", 0xFE, 0x308, null, allStates),
+            new RegisteredPacket("EX_BR_VERSION", 0xFE, 0x309, null, allStates),
+            // 388
+            new RegisteredPacket("EX_NOTIFY_ATTENDANCE", 0xFE, 0x30A, null, allStates),
+            new RegisteredPacket("EX_WRANKING_FESTIVAL_INFO", 0xFE, 0x30B, null, allStates),
+            new RegisteredPacket("EX_WRANKING_FESTIVAL_SIDEBAR_INFO", 0xFE, 0x30C, null, allStates),
+            new RegisteredPacket("EX_WRANKING_FESTIVAL_BU", 0xFE, 0x30D, null, allStates),
+            new RegisteredPacket("EX_WRANKING_FESTIVAL_BONUS", 0xFE, 0x30E, null, allStates),
+            new RegisteredPacket("EX_WRANKING_FESTIVAL_RANKING", 0xFE, 0x30F, null, allStates),
+            new RegisteredPacket("EX_WRANKING_FESTIVAL_MYINFO", 0xFE, 0x310, null, allStates),
+            new RegisteredPacket("EX_WRANKING_FESTIVAL_MY_RECEIVED_BONUS", 0xFE, 0x311, null, allStates),
+            new RegisteredPacket("EX_WRANKING_FESTIVAL_REWARD", 0xFE, 0x312, null, allStates),
+            new RegisteredPacket("EX_TOOLTIP_PARAM", 0xFE, 0x313, null, allStates),
+            new RegisteredPacket("EX_RECEIVED_POST_LIST", 0xFE, 0x314, null, allStates),
+            new RegisteredPacket("EX_TIME_RESTRICT_FIELD_ENTER_INFO", 0xFE, 0x315, null, allStates),
+            new RegisteredPacket("EX_TIME_RESTRICT_FIELD_SERVER_GROUP", 0xFE, 0x316, null, allStates),
+            new RegisteredPacket("EX_WORLD_EXCHANGE_SETTLE_ALARM", 0xFE, 0x317, null, allStates),
+            new RegisteredPacket("EX_HERO_BOOK_INFO", 0xFE, 0x318, null, allStates),
+            new RegisteredPacket("EX_HERO_BOOK_UI", 0xFE, 0x319, null, allStates),
+            new RegisteredPacket("EX_HERO_BOOK_CHARGE", 0xFE, 0x31A, null, allStates),
+            new RegisteredPacket("EX_HERO_BOOK_ENCHANT", 0xFE, 0x31B, null, allStates),
+            new RegisteredPacket("EX_TELEPORT_UI", 0xFE, 0x31C, null, allStates),
+            new RegisteredPacket("EX_GOODS_GIFT_CHANGED_NOTIFICATION", 0xFE, 0x31D, null, allStates),
+            new RegisteredPacket("EX_GOODS_GIFT_LIST_INFO", 0xFE, 0x31E, null, allStates),
+            new RegisteredPacket("EX_GOODS_GIFT_ACCEPT_RESULT", 0xFE, 0x31F, null, allStates),
+            new RegisteredPacket("EX_GOODS_GIFT_REFUSE_RESULT", 0xFE, 0x320, null, allStates),
+            new RegisteredPacket("EX_NONPVPSERVER_NOTIFY_ACTIVATEFLAG", 0xFE, 0x321, null, allStates),
+            new RegisteredPacket("EX_WORLD_EXCHANGE_AVERAGE_PRICE", 0xFE, 0x322, null, allStates),
+            new RegisteredPacket("EX_WORLD_EXCHANGE_TOTAL_LIST", 0xFE, 0x323, null, allStates),
+            new RegisteredPacket("EX_PRISON_USER_ENTER", 0xFE, 0x324, null, allStates),
+            new RegisteredPacket("EX_PRISON_USER_EXIT", 0xFE, 0x325, null, allStates),
+            new RegisteredPacket("EX_PRISON_USER_INFO", 0xFE, 0x326, null, allStates),
+            new RegisteredPacket("EX_PRISON_USER_DONATION", 0xFE, 0x327, null, allStates),
+            new RegisteredPacket("EX_ITEM_RESTORE_OPEN", 0xFE, 0x328, null, allStates),
+            // 414
+            new RegisteredPacket("EX_UNIQUE_GACHA_SIDEBAR_INFO", 0xFE, 0x329, null, allStates),
+            new RegisteredPacket("EX_UNIQUE_GACHA_OPEN", 0xFE, 0x32A, null, allStates),
+            new RegisteredPacket("EX_UNIQUE_GACHA_GAME", 0xFE, 0x32B, null, allStates),
+            new RegisteredPacket("EX_UNIQUE_GACHA_INVEN_ITEM_LIST", 0xFE, 0x32C, null, allStates),
+            new RegisteredPacket("EX_UNIQUE_GACHA_INVEN_GET_ITEM", 0xFE, 0x32D, null, allStates),
+            new RegisteredPacket("EX_UNIQUE_GACHA_INVEN_ADD_ITEM", 0xFE, 0x32E, null, allStates),
+            new RegisteredPacket("EX_UNIQUE_GACHA_HISTORY", 0xFE, 0x32F, null, allStates),
+            new RegisteredPacket("EX_FIELD_DIE_LIMIT_TIME", 0xFE, 0x330, null, allStates),
+            new RegisteredPacket("EX_ELEMENTAL_SPIRIT_ATTACK_TYPE", 0xFE, 0x331, null, allStates),
+            new RegisteredPacket("EX_GET_PLEDGE_CREST_PRESET", 0xFE, 0x332, null, allStates),
+            new RegisteredPacket("EX_DUAL_INVENTORY_INFO", 0xFE, 0x333, null, allStates),
+            new RegisteredPacket("EX_SP_EXTRACT_INFO", 0xFE, 0x334, null, allStates),
+            new RegisteredPacket("EX_SP_EXTRACT_ITEM", 0xFE, 0x335, null, allStates),
+            new RegisteredPacket("EX_QUEST_DIALOG", 0xFE, 0x336, null, allStates),
+            new RegisteredPacket("EX_QUEST_NOTIFICATION", 0xFE, 0x337, null, allStates),
+            new RegisteredPacket("EX_QUEST_NOTIFICATION_AL", 0xFE, 0x338, null, allStates),
+            new RegisteredPacket("EX_QUEST_UI", 0xFE, 0x339, null, allStates),
+            new RegisteredPacket("EX_QUEST_ACCEPTABLE_ALARM", 0xFE, 0x33A, null, allStates),
+            new RegisteredPacket("EX_QUEST_ACCEPTABLE_LIST", 0xFE, 0x33B, null, allStates),
+            new RegisteredPacket("EX_SKILL_ENCHANT_INFO", 0xFE, 0x33C, null, allStates),
+            new RegisteredPacket("EX_SKILL_ENCHANT_CHARGE", 0xFE, 0x33D, null, allStates),
+            new RegisteredPacket("EX_TIME_RESTRICT_FIELD_HOST_USER_ENTER", 0xFE, 0x33E, null, allStates),
+            new RegisteredPacket("EX_TIME_RESTRICT_FIELD_HOST_USER_LEAVE", 0xFE, 0x33F, null, allStates),
+            new RegisteredPacket("EX_DETHRONE_SHOP_BUY", 0xFE, 0x340, null, allStates),
+            new RegisteredPacket("EX_DETHRONE_POINT_INFO", 0xFE, 0x341, null, allStates),
+            new RegisteredPacket("EX_ACQUIRE_SKILL_RESULT", 0xFE, 0x342, null, allStates),
+            new RegisteredPacket("EX_ENHANCED_ABILITY_OF_FIRE_OPEN_UI", 0xFE, 0x343, null, allStates),
+            new RegisteredPacket("EX_ENHANCED_ABILITY_OF_FIRE_INIT", 0xFE, 0x344, null, allStates),
+            new RegisteredPacket("EX_ENHANCED_ABILITY_OF_FIRE_EXP_UP", 0xFE, 0x345, null, allStates),
+            new RegisteredPacket("EX_ENHANCED_ABILITY_OF_FIRE_LEVEL_UP", 0xFE, 0x346, null, allStates),
+            new RegisteredPacket("EX_HOLY_FIRE_OPEN_UI", 0xFE, 0x347, null, allStates),
+            new RegisteredPacket("EX_HOLY_FIRE_NOTIFY", 0xFE, 0x348, null, allStates),
+            new RegisteredPacket("EX_PICK_UP_DIST_MODIFY", 0xFE, 0x349, null, allStates),
+            new RegisteredPacket("EX_MAX", 0xFE, 0x34A, null, allStates),
         };
     }
 }

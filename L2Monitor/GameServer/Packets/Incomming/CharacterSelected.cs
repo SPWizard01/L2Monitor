@@ -1,12 +1,7 @@
 ﻿using L2Monitor.Classes;
 using L2Monitor.Common.Packets;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace L2Monitor.GameServer.Packets.Incomming
 {
@@ -105,9 +100,9 @@ namespace L2Monitor.GameServer.Packets.Incomming
             Unknown5 = ReadBytes(36);
             Unknown6 = ReadBytes(28);
             ObfuscationKey = ReadUInt32();
-            
-            var cl = (GameClient)client;
-            cl.Obfuscator.Init(ObfuscationKey);
+
+            //var cl = (GameClient)client;
+            //cl.Obfuscator.Init(ObfuscationKey);
 
             baseLogger.Information(JsonSerializer.Serialize(this));
         }

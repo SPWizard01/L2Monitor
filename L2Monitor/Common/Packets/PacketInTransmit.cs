@@ -1,16 +1,11 @@
 ﻿using Serilog;
-using Serilog.Core;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace L2Monitor.Common.Packets
 {
-    public class PacketInTransmit
+    public sealed class PacketInTransmit
     {
         public byte[] PacketData { get; private set; }
         public ushort PacketLength { get; private set; }
@@ -21,30 +16,33 @@ namespace L2Monitor.Common.Packets
         public PacketInTransmit(MemoryStream mem)
         {
             logger = Log.ForContext(GetType());
-            var packetLength = BitConverter.ToUInt16(new byte[] { (byte)mem.ReadByte(), (byte)mem.ReadByte() });
-            //rewind the 2 bytes we got so that packet size is inside mem stream
-            mem.Seek(-2, SeekOrigin.Current);
-            //mem length can be more than packetLength because it can contain multiple packets so we only read the amount we need;
-            var remainingDataAmount = mem.Length - mem.Position;
-            var needToReadAmount = remainingDataAmount >= packetLength ? packetLength : remainingDataAmount;
-            //logger.Information("Read packet length {packetLength} read amount {readAmount}", packetLength, readAmount);
+            var firstByte = (byte)mem.ReadByte();
+            var secondByte = (byte)mem.ReadByte();
+            var packetLength = BitConverter.ToUInt16(new byte[] { firstByte, secondByte });
 
-            //on the other hand we could initialize array with packet length
-            //and then calc offsed during AddData
             PacketData = new byte[packetLength];
-            mem.Read(PacketData, 0, (int)needToReadAmount);
-            PacketLength = packetLength;
-            RemainingDataLength = (ushort)(PacketData.Length - needToReadAmount);
+            PacketLength = packetLength; //100
+            PacketData[0] = firstByte;
+            PacketData[1] = secondByte;
+            //since 2 bytes are size
+            RemainingDataLength = (ushort)(packetLength - 2); //98
+
+            //mem length can be more than packetLength because it can contain multiple packets so we only read the amount we need;
+            var remainingDataInMemory = mem.Length - mem.Position;
+            //we read 2 bytes previously
+            var shouldReadAmount = remainingDataInMemory >= RemainingDataLength ? RemainingDataLength : remainingDataInMemory;
+            var amountRead = mem.Read(PacketData, 2, (int)shouldReadAmount);
+            RemainingDataLength -= (ushort)amountRead;
         }
 
-        public PacketInTransmit(byte partialByte)
+        public PacketInTransmit(byte firstByte)
         {
             logger = Log.ForContext(GetType());
             IsPartial = true;
-            PacketData = new byte[2] { partialByte, 0 };
+            PacketData = new byte[2] { firstByte, 0 };
             PacketLength = ushort.MaxValue;
             RemainingDataLength = ushort.MaxValue - 1;
-            logger.Warning("Partial packet, 1st byte: {0}", partialByte);
+            logger.Warning("Partial packet, 1st byte: {0}", firstByte);
         }
 
         public void AddData1(MemoryStream mem)
@@ -64,24 +62,27 @@ namespace L2Monitor.Common.Packets
         {
             if (IsPartial)
             {
+                var firstByte = PacketData[0];
                 //read 1 byte as we already have 1 in memory
                 var secondByte = (byte)mem.ReadByte();
-                logger.Warning("Reconstructing, First byte: {0}", PacketData[0]);
-                logger.Warning("Reconstructing, Second byte: {0}", secondByte);
+                logger.Warning("Reconstructing, First byte was: {0}", firstByte);
+                logger.Warning("Reconstructing, Second byte is: {0}", secondByte);
                 PacketData[1] = secondByte;
                 var packetLength = BitConverter.ToUInt16(PacketData, 0);
-                logger.Warning("Reconstructing, Packet length", packetLength);
+                logger.Warning("Reconstructing, Packet length {0}", packetLength);
+
                 PacketLength = packetLength;
-                PacketData = new byte[packetLength];
-                Array.Copy(BitConverter.GetBytes(packetLength), PacketData, 2);
                 RemainingDataLength = (ushort)(packetLength - 2);
+                PacketData = new byte[packetLength];
+                PacketData[0] = firstByte;
+                PacketData[1] = secondByte;
                 IsPartial = false;
             }
 
-            var bufferLen = mem.Length >= RemainingDataLength ? RemainingDataLength : mem.Length;
+            var toReadAmount = mem.Length >= RemainingDataLength ? RemainingDataLength : mem.Length;
             var offset = PacketLength - RemainingDataLength;
-            mem.Read(PacketData, offset, (int)bufferLen);
-            RemainingDataLength -= (ushort)bufferLen;
+            mem.Read(PacketData, offset, (int)toReadAmount);
+            RemainingDataLength -= (ushort)toReadAmount;
             if (RemainingDataLength < 0)
             {
                 throw new InvalidDataException("Remaining data must be greater or equals to 0");

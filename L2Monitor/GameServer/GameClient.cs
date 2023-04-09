@@ -8,7 +8,6 @@ using PacketDotNet.Connections;
 using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -90,13 +89,22 @@ namespace L2Monitor.GameServer
                     buffer.Enqueue(partPck);
                     return;
                 }
+
+                //if (remainingDatLen == 2)
+                //{
+                //    Logger.Warning("Remaining data length is exactly 2 bytes");
+                //    var partPck = new PacketInTransmit((byte)frameStream.ReadByte());
+                //    buffer.Enqueue(partPck);
+                //    return;
+                //}
+
                 var newPck = new PacketInTransmit(frameStream);
                 buffer.Enqueue(newPck);
                 remainingDatLen = frameStream.Length - frameStream.Position;
-                if ((remainingDatLen > 0 && newPck.RemainingDataLength > 0) || remainingDatLen < 0)
+                if (newPck.RemainingDataLength > 0)
                 {
-                    Logger.Error("This should not happen");
-                    Debugger.Break();
+                    Logger.Warning("The remainig data is not 0, this means that arrived packet only has lenght left, will try to reconstruct from next packet.");
+                    Logger.Warning("At this point, remaining data in frame: {0}, remaining data in packet: {1}", remainingDatLen, newPck.RemainingDataLength);
                     return;
                 }
             }
